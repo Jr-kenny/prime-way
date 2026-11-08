@@ -3,14 +3,27 @@
 // Run: node backend/test.cjs
 // The Relay response below is a real sample returned live by
 // POST /quote/v2 for 1 USDC on Base -> USDC on Arbitrum (verified
-// 2026-11-08). No numbers are invented. The test never calls Relay:
-// the live server is only asked for /health and for input validation,
-// which both answer before any Relay call is made.
+// 2026-11-08). No numbers are invented. The test never calls the real
+// Relay: a local mock Relay stands in for api.relay.link (via the
+// RELAY_API_BASE test seam), and the live server is only asked for
+// /health and for input validation, which both answer before any Relay
+// call is made. The mock chain/currency samples mirror the live shapes
+// recorded in CHAINS.md (verified live 2026-11-08).
 
 const assert = require("node:assert");
 const { spawn } = require("node:child_process");
+const http = require("node:http");
 const path = require("node:path");
-const { validateQuoteInput, shapeQuote, shapeStatus } = require("./server.js");
+const {
+  validateQuoteInput,
+  shapeQuote,
+  shapeStatus,
+  sumFeesUsd,
+  shapeChain,
+  shapeCurrency,
+  parseChainIdParam,
+  shouldTopUpGas,
+} = require("./server.js");
 
 const SAMPLE_RELAY_RESPONSE = {
   requestId: "0x17941185062f91cbd8fa0fec080beb94fb3b8943f4647f8b25e19d1670cc53a7",
@@ -96,6 +109,152 @@ const GOOD_INPUT = {
   amount: "1000000",
 };
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+// Mock Relay data. Shapes mirror the live responses recorded in
+// CHAINS.md (2026-11-08): EVM chains carry vmType "evm" and the zero
+// address as native currency; Solana/Bitcoin/Tron carry their own
+// vmType and native address formats.
+const MOCK_CHAINS = [
+  {
+    id: 1, name: "ethereum", displayName: "Ethereum",
+    httpRpcUrl: "https://ethereum.publicnode.com", wsRpcUrl: "wss://ethereum.publicnode.com",
+    explorerUrl: "https://etherscan.io", disabled: false, tokenSupport: "All",
+    currency: { id: "eth", symbol: "ETH", name: "Ether", address: ZERO_ADDRESS, decimals: 18, supportsBridging: true },
+    iconUrl: "https://assets.relay.link/icons/1/light.png", vmType: "evm",
+  },
+  {
+    id: 8453, name: "base", displayName: "Base",
+    httpRpcUrl: "https://base.drpc.org", wsRpcUrl: "wss://base.drpc.org",
+    explorerUrl: "https://basescan.org", disabled: false, tokenSupport: "All",
+    currency: { id: "eth", symbol: "ETH", name: "Ether", address: ZERO_ADDRESS, decimals: 18, supportsBridging: true },
+    iconUrl: "https://assets.relay.link/icons/8453/light.png", vmType: "evm",
+  },
+  {
+    id: 42161, name: "arbitrum", displayName: "Arbitrum",
+    httpRpcUrl: "https://arbitrum-one.publicnode.com", wsRpcUrl: "wss://arbitrum-one.publicnode.com",
+    explorerUrl: "https://arbiscan.io", disabled: false, tokenSupport: "All",
+    currency: { id: "eth", symbol: "ETH", name: "Ether", address: ZERO_ADDRESS, decimals: 18, supportsBridging: true },
+    iconUrl: "https://assets.relay.link/icons/42161/light.png", vmType: "evm",
+  },
+  {
+    id: 792703809, name: "solana", displayName: "Solana",
+    httpRpcUrl: "https://api.mainnet-beta.solana.com", wsRpcUrl: "",
+    explorerUrl: "https://solscan.io", disabled: false, tokenSupport: "All",
+    currency: { id: "sol", symbol: "SOL", name: "Solana", address: "11111111111111111111111111111111", decimals: 9, supportsBridging: true },
+    iconUrl: "https://assets.relay.link/icons/792703809/light.png", vmType: "svm",
+  },
+  {
+    id: 8253038, name: "bitcoin", displayName: "Bitcoin",
+    httpRpcUrl: "https://mempool.space", wsRpcUrl: "",
+    explorerUrl: "https://mempool.space", disabled: false, tokenSupport: "Limited",
+    currency: { id: "btc", symbol: "BTC", name: "Bitcoin", address: "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8", decimals: 8, supportsBridging: true },
+    iconUrl: "https://assets.relay.link/icons/8253038/light.png", vmType: "bvm",
+  },
+  {
+    id: 728126428, name: "tron", displayName: "Tron",
+    httpRpcUrl: "https://api.trongrid.io/jsonrpc", wsRpcUrl: "",
+    explorerUrl: "https://tronscan.org/#", disabled: false, tokenSupport: "Limited",
+    currency: { id: "trx", symbol: "TRX", name: "TRX", address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb", decimals: 6, supportsBridging: true },
+    iconUrl: "https://assets.relay.link/icons/728126428/light.png", vmType: "tvm",
+  },
+  {
+    // Empty RPC URL: the shaped chain must not carry rpcUrl.
+    id: 999, name: "norpc", displayName: "No RPC",
+    httpRpcUrl: "", wsRpcUrl: "",
+    explorerUrl: "https://example.invalid", disabled: false, tokenSupport: "All",
+    currency: { id: "nrp", symbol: "NRP", name: "No RPC", address: ZERO_ADDRESS, decimals: 18, supportsBridging: true },
+    iconUrl: "", vmType: "evm",
+  },
+  // Malformed entry: no usable id or currency, must be skipped.
+  { id: "bad", name: "broken" },
+];
+
+const MOCK_CURRENCIES_BASE = [
+  { chainId: 8453, address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", name: "USD Coin", decimals: 6, vmType: "evm", metadata: { verified: true } },
+  { chainId: 8453, address: "0x4200000000000000000000000000000000000006", symbol: "WETH", name: "Wrapped Ether", decimals: 18, vmType: "evm", metadata: { verified: true } },
+  { chainId: 8453, address: ZERO_ADDRESS, symbol: "ETH", name: "Ether", decimals: 18, vmType: "evm", metadata: { verified: true } },
+  // Duplicate address (Relay does this live): must be deduped.
+  { chainId: 8453, address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", name: "USD Coin", decimals: 6, vmType: "evm", metadata: { verified: true } },
+  // Malformed entry (no decimals): must be skipped.
+  { chainId: 8453, address: "0xdead000000000000000000000000000000000000", symbol: "BROKEN", name: "Broken" },
+];
+
+// A tiny mock of api.relay.link. Records hits and request bodies so the
+// tests can assert exactly what the backend sent to Relay.
+function startMockRelay(port) {
+  const hits = { chains: 0, currencies: 0, quote: 0 };
+  const bodies = { currencies: null, quote: null };
+  const headers = { currencies: null, quote: null };
+  const server = http.createServer((req, res) => {
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      const raw = Buffer.concat(chunks).toString("utf8");
+      let body = null;
+      try {
+        body = raw ? JSON.parse(raw) : null;
+      } catch {
+        body = null;
+      }
+      res.setHeader("Content-Type", "application/json");
+      if (req.method === "GET" && req.url === "/chains") {
+        hits.chains++;
+        res.writeHead(200);
+        res.end(JSON.stringify({ chains: MOCK_CHAINS }));
+        return;
+      }
+      if (req.method === "POST" && req.url === "/currencies/v2") {
+        hits.currencies++;
+        bodies.currencies = body;
+        headers.currencies = req.headers;
+        if (body && Array.isArray(body.chainIds) && body.chainIds.includes(12345)) {
+          // Non-array Relay response: the backend must answer 502.
+          res.writeHead(200);
+          res.end(JSON.stringify({ not: "an array" }));
+          return;
+        }
+        res.writeHead(200);
+        res.end(
+          JSON.stringify(
+            body && Array.isArray(body.chainIds) && body.chainIds.includes(8453)
+              ? MOCK_CURRENCIES_BASE
+              : []
+          )
+        );
+        return;
+      }
+      if (req.method === "POST" && req.url === "/quote/v2") {
+        hits.quote++;
+        bodies.quote = body;
+        headers.quote = req.headers;
+        res.writeHead(200);
+        res.end(JSON.stringify(SAMPLE_RELAY_RESPONSE));
+        return;
+      }
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: "not found" }));
+    });
+  });
+  return new Promise((resolve) => {
+    server.listen(port, "127.0.0.1", () => resolve({ server, hits, bodies, headers }));
+  });
+}
+
+async function getJson(port, path) {
+  const res = await fetch(`http://127.0.0.1:${port}${path}`);
+  return { status: res.status, body: await res.json() };
+}
+
+async function postJson(port, path, obj) {
+  const res = await fetch(`http://127.0.0.1:${port}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(obj),
+  });
+  return { status: res.status, body: await res.json() };
+}
+
 function check(name, fn) {
   fn();
   console.log(`ok - ${name}`);
@@ -176,6 +335,15 @@ async function main() {
       `feesUsd was ${shaped.feesUsd}, expected about 0.024928`
     );
   });
+  check("shaping: non-numeric fee line is skipped, never nulls feesUsd", () => {
+    assert.strictEqual(
+      sumFeesUsd({ gas: { amountUsd: "oops" }, relayer: { amountUsd: "0.02" } }),
+      0.02
+    );
+    assert.strictEqual(sumFeesUsd({ gas: { amountUsd: "oops" } }), 0);
+    assert.strictEqual(sumFeesUsd({}), 0);
+    assert.strictEqual(sumFeesUsd(null), 0);
+  });
   check("shaping: status waiting (verified live 2026-11-08)", () => {
     const shaped = shapeStatus(
       { status: "waiting", quoteCreatedAt: 1794122301010 },
@@ -204,10 +372,102 @@ async function main() {
       /originChainId/
     );
   });
+  check("validation: topupGas must be a boolean when present", () => {
+    assert.strictEqual(validateQuoteInput({ ...GOOD_INPUT, topupGas: true }), null);
+    assert.strictEqual(validateQuoteInput({ ...GOOD_INPUT, topupGas: false }), null);
+    assert.strictEqual(validateQuoteInput(GOOD_INPUT), null);
+    assert.match(validateQuoteInput({ ...GOOD_INPUT, topupGas: "true" }), /topupGas/);
+    assert.match(validateQuoteInput({ ...GOOD_INPUT, topupGas: 1 }), /topupGas/);
+    assert.match(validateQuoteInput({ ...GOOD_INPUT, topupGas: null }), /topupGas/);
+  });
+  check("shaping: chain shaping (EVM vs non-EVM, RPC URL)", () => {
+    const base = shapeChain(MOCK_CHAINS[1]);
+    assert.deepStrictEqual(base, {
+      id: 8453,
+      name: "base",
+      displayName: "Base",
+      nativeCurrency: { symbol: "ETH", decimals: 18 },
+      evm: true,
+      disabled: false,
+      explorerUrl: "https://basescan.org",
+      iconUrl: "https://assets.relay.link/icons/8453/light.png",
+      rpcUrl: "https://base.drpc.org",
+    });
+    const solana = shapeChain(MOCK_CHAINS[3]);
+    assert.strictEqual(solana.evm, false);
+    assert.strictEqual(solana.nativeCurrency.symbol, "SOL");
+    assert.strictEqual(solana.nativeCurrency.decimals, 9);
+    assert.strictEqual(solana.rpcUrl, "https://api.mainnet-beta.solana.com");
+    const noRpc = shapeChain(MOCK_CHAINS[6]);
+    assert.strictEqual("rpcUrl" in noRpc, false);
+    assert.strictEqual("iconUrl" in noRpc, false);
+    assert.strictEqual(shapeChain(MOCK_CHAINS[7]), null);
+    assert.strictEqual(shapeChain(null), null);
+    assert.strictEqual(shapeChain({ id: 1, name: "x" }), null);
+  });
+  check("shaping: currency shaping keeps non-hex addresses", () => {
+    assert.deepStrictEqual(
+      shapeCurrency({ address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", symbol: "USDC", name: "USD Coin", decimals: 6 }),
+      { address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", symbol: "USDC", decimals: 6, name: "USD Coin" }
+    );
+    assert.strictEqual(shapeCurrency({ address: "0xabc", symbol: "X", decimals: "6" }), null);
+    assert.strictEqual(shapeCurrency({ symbol: "X", decimals: 6 }), null);
+  });
+  check("parsing: chainId query param", () => {
+    assert.strictEqual(parseChainIdParam("8453"), 8453);
+    assert.strictEqual(parseChainIdParam(null), null);
+    assert.strictEqual(parseChainIdParam(""), null);
+    assert.strictEqual(parseChainIdParam("abc"), null);
+    assert.strictEqual(parseChainIdParam("0"), null);
+    assert.strictEqual(parseChainIdParam("-5"), null);
+    assert.strictEqual(parseChainIdParam("8453.5"), null);
+    assert.strictEqual(parseChainIdParam("0x2105"), null);
+    assert.strictEqual(parseChainIdParam(" 8453"), null);
+  });
+  check("topupGas gate: EVM-to-EVM non-native only", () => {
+    const rawById = new Map(MOCK_CHAINS.map((c) => [c.id, c]));
+    const chainsData = { rawById };
+    assert.strictEqual(shouldTopUpGas({ ...GOOD_INPUT, topupGas: true }, chainsData), true);
+    assert.strictEqual(shouldTopUpGas({ ...GOOD_INPUT, topupGas: false }, chainsData), false);
+    assert.strictEqual(shouldTopUpGas(GOOD_INPUT, chainsData), false);
+    assert.strictEqual(
+      shouldTopUpGas({ ...GOOD_INPUT, topupGas: true, originCurrency: ZERO_ADDRESS }, chainsData),
+      false,
+      "native origin must not top up"
+    );
+    assert.strictEqual(
+      shouldTopUpGas({ ...GOOD_INPUT, topupGas: true, destinationChainId: 792703809 }, chainsData),
+      false,
+      "Solana destination must not top up"
+    );
+    assert.strictEqual(
+      shouldTopUpGas({ ...GOOD_INPUT, topupGas: true, originChainId: 792703809 }, chainsData),
+      false,
+      "Solana origin must not top up"
+    );
+    assert.strictEqual(
+      shouldTopUpGas({ ...GOOD_INPUT, topupGas: true, destinationChainId: 8253038 }, chainsData),
+      false,
+      "Bitcoin destination must not top up"
+    );
+    assert.strictEqual(
+      shouldTopUpGas({ ...GOOD_INPUT, topupGas: true, destinationChainId: 999999 }, chainsData),
+      false,
+      "unknown chain fails closed"
+    );
+    assert.strictEqual(shouldTopUpGas({ ...GOOD_INPUT, topupGas: true }, null), false);
+  });
 
   // 3. Live server: /health and 400s (no Relay call is made here).
+  // The mock Relay stands in for api.relay.link for every server below.
+  const mockPort = 3458;
+  const mock = await startMockRelay(mockPort);
+  const mockBase = `http://127.0.0.1:${mockPort}`;
   const port = 3456;
-  const server = startServer({ RELAY_API_KEY: "dummy-key-for-validation-tests-only" }, port);
+  const server = startServer(
+    { RELAY_API_KEY: "dummy-key-for-validation-tests-only", RELAY_API_BASE: mockBase },
+    port
+  );
   try {
     const health = await waitForHealth(port);
     const healthBody = await health.json();
@@ -257,7 +517,141 @@ async function main() {
     server.kill();
   }
 
-  // 4. Missing RELAY_API_KEY: clear startup error, exit 1, no stack trace.
+  // 4. Live server against the mock Relay: /chains, /currencies, /quote
+  // with topupGas. Each block asserts what the backend actually sent to
+  // Relay, not just what it returned.
+  const port2 = 3459;
+  const server2 = startServer(
+    { RELAY_API_KEY: "dummy-key-for-validation-tests-only", RELAY_API_BASE: mockBase },
+    port2
+  );
+  try {
+    await waitForHealth(port2);
+
+    const chains1 = await getJson(port2, "/chains");
+    assert.strictEqual(chains1.status, 200);
+    assert.strictEqual(chains1.body.chains.length, 7, "malformed mock entry must be skipped");
+    const base = chains1.body.chains.find((c) => c.id === 8453);
+    assert.deepStrictEqual(base, {
+      id: 8453, name: "base", displayName: "Base",
+      nativeCurrency: { symbol: "ETH", decimals: 18 },
+      evm: true, disabled: false,
+      explorerUrl: "https://basescan.org",
+      iconUrl: "https://assets.relay.link/icons/8453/light.png",
+      rpcUrl: "https://base.drpc.org",
+    });
+    const solana = chains1.body.chains.find((c) => c.id === 792703809);
+    assert.strictEqual(solana.evm, false);
+    assert.strictEqual(solana.nativeCurrency.symbol, "SOL");
+    const noRpc = chains1.body.chains.find((c) => c.id === 999);
+    assert.strictEqual("rpcUrl" in noRpc, false);
+    assert.strictEqual(mock.hits.chains, 1);
+    console.log("ok - http: GET /chains returns clean chains (EVM flag, rpcUrl, malformed skipped)");
+
+    const chains2 = await getJson(port2, "/chains");
+    assert.strictEqual(chains2.status, 200);
+    assert.strictEqual(mock.hits.chains, 1, "second /chains must be served from cache");
+    console.log("ok - http: GET /chains is cached (one Relay fetch for two calls)");
+
+    const curr1 = await getJson(port2, "/currencies?chainId=8453");
+    assert.strictEqual(curr1.status, 200);
+    assert.strictEqual(curr1.body.chainId, 8453);
+    assert.deepStrictEqual(
+      curr1.body.currencies.map((c) => c.symbol),
+      ["USDC", "WETH", "ETH"],
+      "duplicate address deduped, malformed entry skipped"
+    );
+    assert.deepStrictEqual(mock.bodies.currencies, { chainIds: [8453], limit: 100 });
+    assert.strictEqual(mock.headers.currencies["x-api-key"], "dummy-key-for-validation-tests-only");
+    assert.strictEqual(mock.hits.currencies, 1);
+    console.log("ok - http: GET /currencies returns clean currencies (POST to Relay, limit 100, key sent)");
+
+    const curr2 = await getJson(port2, "/currencies?chainId=8453");
+    assert.strictEqual(curr2.status, 200);
+    assert.strictEqual(mock.hits.currencies, 1, "second /currencies for the same chain must be cached");
+    const currOther = await getJson(port2, "/currencies?chainId=1");
+    assert.strictEqual(currOther.status, 200);
+    assert.deepStrictEqual(currOther.body.currencies, []);
+    assert.strictEqual(mock.hits.currencies, 2, "a different chain is a separate cache entry");
+    const currUnknown = await getJson(port2, "/currencies?chainId=999999999");
+    assert.strictEqual(currUnknown.status, 200);
+    assert.deepStrictEqual(currUnknown.body.currencies, []);
+    console.log("ok - http: GET /currencies caches per chain and returns [] for unknown chains");
+
+    for (const bad of ["/currencies", "/currencies?chainId=abc", "/currencies?chainId=0", "/currencies?chainId=-5", "/currencies?chainId=8453.5", "/currencies?chainId=0x2105"]) {
+      const r = await getJson(port2, bad);
+      assert.strictEqual(r.status, 400, `${bad} must be 400`);
+      assert.match(r.body.error, /chainId/);
+    }
+    console.log("ok - http: GET /currencies rejects missing/bad chainId with 400");
+
+    const currBadShape = await getJson(port2, "/currencies?chainId=12345");
+    assert.strictEqual(currBadShape.status, 502, "non-array Relay response must be 502");
+    console.log("ok - http: GET /currencies returns 502 when Relay's shape is wrong");
+
+    const quoteTopUp = await postJson(port2, "/quote", { ...GOOD_INPUT, topupGas: true });
+    assert.strictEqual(quoteTopUp.status, 200);
+    assert.strictEqual(quoteTopUp.body.outputAmount, "976173");
+    assert.strictEqual(mock.bodies.quote.topupGas, true);
+    assert.strictEqual(mock.hits.chains, 1, "quote top-up reuses the cached chain list");
+    console.log("ok - http: POST /quote topupGas true (EVM->EVM, non-native) forwards topupGas: true");
+
+    const quoteNoTopUp = await postJson(port2, "/quote", { ...GOOD_INPUT, topupGas: false });
+    assert.strictEqual(quoteNoTopUp.status, 200);
+    assert.strictEqual("topupGas" in mock.bodies.quote, false);
+    const quoteDefault = await postJson(port2, "/quote", GOOD_INPUT);
+    assert.strictEqual(quoteDefault.status, 200);
+    assert.strictEqual("topupGas" in mock.bodies.quote, false);
+    console.log("ok - http: POST /quote topupGas false/absent sends no flag (default off)");
+
+    const quotesBefore = mock.hits.quote;
+    for (const badFlag of ["true", 1, null]) {
+      const r = await postJson(port2, "/quote", { ...GOOD_INPUT, topupGas: badFlag });
+      assert.strictEqual(r.status, 400, `topupGas ${JSON.stringify(badFlag)} must be 400`);
+      assert.match(r.body.error, /topupGas/);
+    }
+    assert.strictEqual(mock.hits.quote, quotesBefore, "invalid topupGas must not reach Relay");
+    console.log("ok - http: POST /quote rejects non-boolean topupGas with 400");
+
+    const quoteNative = await postJson(port2, "/quote", {
+      ...GOOD_INPUT, topupGas: true, originCurrency: ZERO_ADDRESS,
+    });
+    assert.strictEqual(quoteNative.status, 200);
+    assert.strictEqual("topupGas" in mock.bodies.quote, false, "native origin must not forward the flag");
+    const quoteSolana = await postJson(port2, "/quote", {
+      ...GOOD_INPUT, topupGas: true, destinationChainId: 792703809,
+    });
+    assert.strictEqual(quoteSolana.status, 200);
+    assert.strictEqual("topupGas" in mock.bodies.quote, false, "Solana route must not forward the flag");
+    const quoteUnknownChain = await postJson(port2, "/quote", {
+      ...GOOD_INPUT, topupGas: true, destinationChainId: 999999,
+    });
+    assert.strictEqual(quoteUnknownChain.status, 200);
+    assert.strictEqual("topupGas" in mock.bodies.quote, false, "unknown chain fails closed");
+    console.log("ok - http: POST /quote drops topupGas for native origin, Solana route, unknown chain");
+  } finally {
+    server2.kill();
+  }
+
+  // Relay unreachable: list endpoints answer 502, never crash.
+  const port3 = 3460;
+  const server3 = startServer(
+    { RELAY_API_KEY: "dummy-key-for-validation-tests-only", RELAY_API_BASE: "http://127.0.0.1:59999" },
+    port3
+  );
+  try {
+    await waitForHealth(port3);
+    const downChains = await getJson(port3, "/chains");
+    assert.strictEqual(downChains.status, 502);
+    const downCurr = await getJson(port3, "/currencies?chainId=8453");
+    assert.strictEqual(downCurr.status, 502);
+    console.log("ok - http: GET /chains and /currencies return 502 when Relay is unreachable");
+  } finally {
+    server3.kill();
+  }
+  mock.server.close();
+
+  // 5. Missing RELAY_API_KEY: clear startup error, exit 1, no stack trace.
   const noKeyEnv = { ...process.env };
   delete noKeyEnv.RELAY_API_KEY;
   const noKey = spawn("node", [path.join(__dirname, "server.js")], {
