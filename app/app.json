@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E8641C",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.primeisles.primeway",
+      "predictiveBackGestureEnabled": false
+    },
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.primeisles.primeway",
+      "supportsTablet": true
+    },
+    "name": "Prime Way",
+    "orientation": "portrait",
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser",
+      "react-native-quick-crypto"
+    ],
+    "scheme": "primeway",
+    "slug": "prime-way",
+    "splash": {
+      "backgroundColor": "#FFFFFF",
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain"
+    },
+    "userInterfaceStyle": "automatic",
+    "version": "1.0.0",
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "75324ce7-b3d9-45e0-bbf8-38a746b70b97"
+      }
+    },
+    "owner": "primeisles"
+  }
+}
