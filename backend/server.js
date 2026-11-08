@@ -71,7 +71,13 @@ function shapeQuote(relay, body) {
 
 function sendJson(res, status, obj) {
   const data = JSON.stringify(obj);
-  res.writeHead(status, { "Content-Type": "application/json" });
+  // The Prime Way app calls this service from the browser, from another
+  // origin, so every response allows cross-origin reads. The service takes
+  // no cookies or credentials, so "*" is safe here.
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+  });
   res.end(data);
 }
 
@@ -134,6 +140,17 @@ async function handleQuote(req, res) {
 
 function createServer() {
   return http.createServer((req, res) => {
+    // Browser preflight for cross-origin POST /quote.
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
+      });
+      res.end();
+      return;
+    }
     if ((req.method === "GET" || req.method === "HEAD") && req.url === "/health") {
       sendJson(res, 200, { ok: true });
       return;

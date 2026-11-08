@@ -153,7 +153,19 @@ async function main() {
     const health = await waitForHealth(port);
     const healthBody = await health.json();
     assert.deepStrictEqual(healthBody, { ok: true });
-    console.log("ok - http: GET /health returns {ok: true}");
+    assert.strictEqual(health.headers.get("access-control-allow-origin"), "*");
+    console.log("ok - http: GET /health returns {ok: true} with CORS header");
+
+    const preflight = await fetch(`http://127.0.0.1:${port}/quote`, {
+      method: "OPTIONS",
+    });
+    assert.strictEqual(preflight.status, 204);
+    assert.match(
+      preflight.headers.get("access-control-allow-methods") || "",
+      /POST/
+    );
+    assert.strictEqual(preflight.headers.get("access-control-allow-origin"), "*");
+    console.log("ok - http: OPTIONS /quote answers 204 with CORS headers");
 
     const badAddress = await fetch(`http://127.0.0.1:${port}/quote`, {
       method: "POST",
