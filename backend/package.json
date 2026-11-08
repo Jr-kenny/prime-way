@@ -1,0 +1,1 @@
+{"description":"Prime Way backend: Relay quote service","engines":{"node":">=18"},"main":"server.js","name":"prime-way-backend","scripts":{"start":"node server.js","test":"node test.cjs"},"version":"1.0.0"}
