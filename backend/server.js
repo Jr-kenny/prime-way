@@ -134,7 +134,7 @@ async function handleQuote(req, res) {
 
 function createServer() {
   return http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health") {
+    if ((req.method === "GET" || req.method === "HEAD") && req.url === "/health") {
       sendJson(res, 200, { ok: true });
       return;
     }
