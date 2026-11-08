@@ -688,6 +688,62 @@ function initials(n){ return n.split(' ').map(function(w){return w[0];}).join(''
 function fmtCoin(v){ return v>=100 ? v.toFixed(1) : v>=1 ? v.toFixed(2) : v.toFixed(4); }
 function receiveFor(amountBNB, net){ return amountBNB * net.rate * (1 - FEE); }
 
+/* ================= LIVE QUOTE DATA (Relay, checked 2026-11-08) ================= */
+var QUOTE_API = 'https://prime-way-backend.onrender.com/quote';
+var QUOTE_WALLET = '0xA37a186AfE306C3EE01D6ABF912cC42BC568091C';
+var CHAIN_IDS = {'Base':8453,'Arbitrum':42161,'Ethereum':1,'Polygon':137,'Optimism':10,'BNB Chain':56,'Avalanche':43114};
+var ZERO_ADDR = '0x0000000000000000000000000000000000000000';
+var TOKEN_MAP = {
+  56:{'BNB':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d',decimals:18},'USDT':{address:'0x55d398326f99059ff775485246999027b3197955',decimals:18}},
+  8453:{'ETH':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',decimals:6},'USDT':{address:'0xfde4c96c8593536e31f229ea8f37b2ada2699bb2',decimals:6}},
+  42161:{'ETH':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0xaf88d065e77c8cc2239327c5edb3a432268e5831',decimals:6},'USDT':{address:'0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',decimals:6}},
+  1:{'ETH':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',decimals:6},'USDT':{address:'0xdac17f958d2ee523a2206206994597c13d831ec7',decimals:6}},
+  10:{'ETH':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0x0b2c639c533813f4aa9d7837caf62653d097ff85',decimals:6},'USDT':{address:'0x94b008aa00579c1307b0ef2c499ad98a8ce58e58',decimals:6}},
+  137:{'POL':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',decimals:6},'USDT':{address:'0xc2132d05d31c914a87c6611c10748aeb04b58e8f',decimals:6}},
+  43114:{'AVAX':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e',decimals:6}}
+};
+function dollarsToUnits(usdStr, price, decimals){
+  var s = String(usdStr==null?'':usdStr).trim().replace(',','.');
+  if(!/^\d*(\.\d*)?$/.test(s) || s==='' || s==='.') return null;
+  var parts = s.split('.');
+  var intPart = parts[0] || '0';
+  var fracPart = parts[1] || '';
+  var digits = (intPart + fracPart).replace(/^0+(?=\d)/,'');
+  if(!digits) digits = '0';
+  try{
+    var scaled = BigInt(digits);
+    var numerator = scaled * (10n ** BigInt(decimals));
+    var denominator = BigInt(price) * (10n ** BigInt(fracPart.length));
+    if(denominator===0n) return null;
+    var units = numerator / denominator;
+    if(units===0n) return null;
+    return units.toString();
+  }catch(e){ return null; }
+}
+function quoteRouteFor(usdStr){
+  if(typeof demo==='undefined' || !demo || !demo.network) return null;
+  var pay = ASSETS_HELD[demo.payAsset];
+  if(!pay) return null;
+  var originChainId = CHAIN_IDS[pay.chain];
+  var destinationChainId = CHAIN_IDS[demo.network.name];
+  if(!originChainId || !destinationChainId) return null;
+  var originTokens = TOKEN_MAP[originChainId];
+  var destTokens = TOKEN_MAP[destinationChainId];
+  if(!originTokens || !destTokens) return null;
+  var originToken = originTokens[pay.symbol];
+  var destToken = destTokens[demo.receiveSym];
+  if(!originToken || !destToken) return null;
+  var units = dollarsToUnits(usdStr, pay.price, originToken.decimals);
+  if(!units) return null;
+  return {originChainId:originChainId, destinationChainId:destinationChainId, originCurrency:originToken.address, destinationCurrency:destToken.address, amount:units, key:originChainId+'|'+destinationChainId+'|'+originToken.address.toLowerCase()+'|'+destToken.address.toLowerCase()+'|'+units};
+}
+function fmtFee(feesUsd){
+  if(feesUsd===null || feesUsd===undefined || feesUsd==='') return null;
+  var f = parseFloat(feesUsd);
+  if(isNaN(f)) return null;
+  return '$' + (f < 1 ? f.toFixed(3) : f.toFixed(2));
+}
+
 function tipBtn(text){
   return '<span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Tip" onclick="toggleTip(this,event)">?</button><span class="tip-pop">'+text+'</span></span>';
 }
@@ -1036,7 +1092,8 @@ document.getElementById('gallery').innerHTML = GALLERY.map(function(g){
 }).join('');
 
 /* ================= INTERACTIVE DEMO ================= */
-var demo = { screen:'welcome', person:null, network:null, amount:'100', theme:'light', timer:null, newNet:0, payAsset:0, receiveSym:'USDC', selPerson:null, exportRevealed:false, keyRevealed:false, pinSet:false, pinValue:'' };
+var demo = { screen:'welcome', person:null, network:null, amount:'100', theme:'light', timer:null, newNet:0, payAsset:0, receiveSym:'USDC', selPerson:null, exportRevealed:false, keyRevealed:false, pinSet:false, pinValue:'', liveQuote:null };
+var liveTimer = null, liveSeq = 0;
 var SAMPLE_KEY = '0x8f3ac2917bd04e6fa51290cd47b8e3a1f6c0d59284be71a03dcf65e927b4a1c9';
 var demoScr = document.getElementById('demoScr');
 var demoPhone = document.getElementById('demoPhone');
@@ -1048,7 +1105,7 @@ function setDemoTheme(t){
   document.getElementById('segDark').classList.toggle('on', t==='dark');
 }
 function show(html){ demoScr.innerHTML = statusBar() + html; }
-function demoRestart(){ clearTimeout(demo.timer); demo.screen='welcome'; demo.person=null; demo.network=null; demo.amount='100'; demo.payAsset=0; demo.receiveSym='USDC'; demo.selPerson=null; demo.exportRevealed=false; demo.keyRevealed=false; demo.pinSet=false; demo.pinValue=''; renderDemo(); }
+function demoRestart(){ clearTimeout(demo.timer); if(liveTimer){ clearTimeout(liveTimer); liveTimer=null; } liveSeq++; demo.liveQuote=null; demo.screen='welcome'; demo.person=null; demo.network=null; demo.amount='100'; demo.payAsset=0; demo.receiveSym='USDC'; demo.selPerson=null; demo.exportRevealed=false; demo.keyRevealed=false; demo.pinSet=false; demo.pinValue=''; renderDemo(); }
 function demoError(){ clearTimeout(demo.timer); demo.screen='error'; renderDemo(); }
 
 function renderDemo(){
@@ -1340,8 +1397,49 @@ function dAmount(){
     + '<button class="bigbtn" id="amtGo" style="margin-top:14px" onclick="go(\'confirm\')">Keep going</button>'
     + '</div><div class="homebar"></div>';
 }
-function selectPayAsset(i){ demo.payAsset = i; renderDemo(); }
-function selectReceiveAsset(sym){ demo.receiveSym = sym; renderDemo(); }
+function selectPayAsset(i){ demo.payAsset = i; demo.liveQuote = null; renderDemo(); }
+function selectReceiveAsset(sym){ demo.receiveSym = sym; demo.liveQuote = null; renderDemo(); }
+function cancelLiveQuote(){ if(liveTimer){ clearTimeout(liveTimer); liveTimer = null; } liveSeq++; }
+function liveReceiveHTML(got, ra, feesUsd){
+  var feeTxt = fmtFee(feesUsd);
+  var feeNote = feeTxt ? 'Fee '+feeTxt+'. A tiny fee comes out of the amount. Nothing extra to pay.' : 'A tiny fee comes out of the amount. Nothing extra to pay.';
+  return '<div class="receive-box" style="margin-top:14px"><div class="rlab">'+demo.person.name+' will receive</div><div class="rnum">'+fmtRecv(got, ra)+' <span class="demo-tag" style="vertical-align:middle;font-size:11px;padding:3px 9px">Live</span></div><div class="rusd">On '+demo.network.name+'</div></div><p class="fee-note">'+feeNote+'</p>';
+}
+function sampleReceiveHTML(got, ra){
+  return '<div class="receive-box" style="margin-top:14px"><div class="rlab">'+demo.person.name+' will receive</div><div class="rnum">'+(ra.price>100?got.toFixed(4):got.toFixed(2))+' '+ra.symbol+'</div><div class="rusd">On '+demo.network.name+'</div></div><p class="fee-note">A tiny fee comes out of the amount. Nothing extra to pay.</p>';
+}
+function scheduleLiveQuote(route, ra){
+  if(liveTimer){ clearTimeout(liveTimer); liveTimer = null; }
+  var seq = ++liveSeq;
+  var key = route.key;
+  liveTimer = setTimeout(function(){
+    liveTimer = null;
+    fetchLiveQuote(route, ra, seq, key);
+  }, 650);
+}
+function fetchLiveQuote(route, ra, seq, key){
+  if(typeof fetch==='undefined') return;
+  var body = {user:QUOTE_WALLET, recipient:QUOTE_WALLET, originChainId:route.originChainId, destinationChainId:route.destinationChainId, originCurrency:route.originCurrency, destinationCurrency:route.destinationCurrency, amount:route.amount};
+  var controller = null, timeoutId = null;
+  try{
+    if(typeof AbortController!=='undefined'){ controller = new AbortController(); timeoutId = setTimeout(function(){ try{ controller.abort(); }catch(e){} }, 15000); }
+  }catch(e){}
+  fetch(QUOTE_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal: controller ? controller.signal : undefined})
+    .then(function(res){ if(timeoutId) clearTimeout(timeoutId); if(!res.ok) throw new Error('bad'); return res.json(); })
+    .then(function(json){
+      if(seq!==liveSeq) return;
+      if(!json || json.outputAmountFormatted===undefined || json.outputAmountFormatted===null) return;
+      var got = parseFloat(json.outputAmountFormatted);
+      if(isNaN(got) || got<=0) return;
+      var current = quoteRouteFor(demo.amount);
+      if(!current || current.key!==key) return;
+      demo.liveQuote = {key:key, got:got, feesUsd:(json.feesUsd!==undefined?json.feesUsd:null), outputAmountFormatted:json.outputAmountFormatted};
+      if(demo.screen!=='amount') return;
+      var area = document.getElementById('recvArea');
+      if(area) area.innerHTML = liveReceiveHTML(got, ra, demo.liveQuote.feesUsd);
+    })
+    .catch(function(){ if(timeoutId) clearTimeout(timeoutId); /* keep sample, never show an error */ });
+}
 function updateAmount(){
   var inp = document.getElementById('amtInput'); if(!inp) return;
   var usd = parseFloat(inp.value.replace(',','.'));
@@ -1353,6 +1451,7 @@ function updateAmount(){
   var pn = document.getElementById('payNeed');
   if(pn) pn.textContent = (!isNaN(usd) && usd>0) ? 'That\u2019s '+(usd/pay.price).toFixed(pay.price>100?3:2)+' '+pay.symbol+' from your '+pay.symbol+' on '+pay.chain : '';
   if(!ra.ok){
+    cancelLiveQuote();
     if(area) area.innerHTML = '<div class="bam-box"><div style="flex:none">'+pip('apologetic',46)+'</div><p><span>'+ra.symbol+' can\u2019t be delivered on '+demo.network.name+'.</span><br/>Relay does not offer it there. Pick USDC.</p></div>';
     if(btn) btn.disabled = true;
     return;
@@ -1360,25 +1459,42 @@ function updateAmount(){
   if(valid){
     demo.amount = inp.value;
     var got = usd * (1 - FEE) / ra.price;
-    if(area) area.innerHTML = '<div class="receive-box" style="margin-top:14px"><div class="rlab">'+demo.person.name+' will receive</div><div class="rnum">'+(ra.price>100?got.toFixed(4):got.toFixed(2))+' '+ra.symbol+'</div><div class="rusd">On '+demo.network.name+'</div></div><p class="fee-note">A tiny fee comes out of the amount. Nothing extra to pay.</p>';
+    var route = quoteRouteFor(inp.value);
+    if(route && demo.liveQuote && demo.liveQuote.key===route.key){
+      if(area) area.innerHTML = liveReceiveHTML(demo.liveQuote.got, ra, demo.liveQuote.feesUsd);
+    } else if(route){
+      /* Keep showing a number while the live quote is fetched. */
+      if(area) area.innerHTML = sampleReceiveHTML(got, ra);
+      scheduleLiveQuote(route, ra);
+    } else {
+      cancelLiveQuote();
+      if(area) area.innerHTML = sampleReceiveHTML(got, ra);
+    }
   } else {
+    cancelLiveQuote();
     if(area) area.innerHTML = '<div class="receive-box" style="margin-top:14px"><div class="rlab">'+demo.person.name+' will receive</div><div class="rnum">, </div><div class="rusd">'+(usd>payUsdTotal ? 'That is more than your '+pay.symbol+' is worth ($'+payUsdTotal.toLocaleString(undefined,{maximumFractionDigits:0})+')' : 'Type an amount to see what they get')+'</div></div>';
   }
   if(btn) btn.disabled = !valid;
 }
 function recvCalc(){
   var usd = parseFloat(demo.amount)||0, ra = receiveAsset(demo.receiveSym), pay = ASSETS_HELD[demo.payAsset];
-  return { usd:usd, ra:ra, pay:pay, got: usd*(1-FEE)/ra.price, payAmt: usd/pay.price };
+  var route = quoteRouteFor(demo.amount);
+  if(route && demo.liveQuote && demo.liveQuote.key===route.key){
+    return { usd:usd, ra:ra, pay:pay, got: demo.liveQuote.got, payAmt: usd/pay.price, live:true, feesUsd: demo.liveQuote.feesUsd };
+  }
+  return { usd:usd, ra:ra, pay:pay, got: usd*(1-FEE)/ra.price, payAmt: usd/pay.price, live:false, feesUsd:null };
 }
 function fmtRecv(got, ra){ return (ra.price>100?got.toFixed(4):got.toFixed(2))+' '+ra.symbol; }
 function dConfirm(){
   var c = recvCalc(), net = demo.network;
+  var feeTxt = c.live ? fmtFee(c.feesUsd) : null;
   return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'amount\')">'+ICONS.back+' Back</button>'
     + '<div class="app-h" style="font-size:25px">Just to check</div>'
     + '<div class="confirm-card">'
     + '<div class="crow"><span>Sending to</span><span>'+demo.person.name+'</span></div>'
     + '<div class="crow"><span>You send</span><span>$'+c.usd.toLocaleString()+' · '+c.payAmt.toFixed(3)+' '+c.pay.symbol+'</span></div>'
-    + '<div class="crow"><span>'+demo.person.name+' receives</span><span style="color:var(--accent)">'+fmtRecv(c.got, c.ra)+'</span></div>'
+    + '<div class="crow"><span>'+demo.person.name+' receives</span><span style="color:var(--accent)">'+fmtRecv(c.got, c.ra)+(c.live?' <span class="demo-tag" style="font-size:10.5px;padding:2px 8px;vertical-align:middle">Live</span>':'')+'</span></div>'
+    + (feeTxt?'<div class="crow"><span>Fee</span><span>'+feeTxt+'</span></div>':'')
     + '<div class="crow"><span>Where</span><span>'+net.name+'</span></div>'
     + '<div class="crow"><span>Arrives</span><span>In a few minutes</span></div></div>'
     + mascotMsg('thinking','I\'ve found the way there. All set when you are.')
