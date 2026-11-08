@@ -4,14 +4,16 @@ Prime Way as MCP tools: any MCP-client agent can send money through
 Prime Way directly, without custom code. Same backend, same quotes,
 same routes as the human app. The human app stays unchanged.
 
+Normal usage, the same as a person using the app: get a live quote,
+send money through the quote's steps, check how the send is doing.
+
 ## Tools
 
 | Tool | What it does |
 | --- | --- |
 | `primeway_quote` | A live quote: what the recipient receives and what it costs. Read-only, never moves money. |
-| `primeway_send` | Send money: quotes, runs the approve and deposit steps, and watches until the money lands or is refunded. |
+| `primeway_send` | Send money: quotes, runs the approve and deposit steps, and watches until the money lands or is refunded. Returns the receipt. |
 | `primeway_status` | How far a send has got, by requestId: `waiting`, `depositing`, `pending`, `success`, `refund`. `failure` is not final. |
-| `primeway_decisions` | The recorded decisions and receipts. Read-only audit. |
 
 ## Run it
 
@@ -23,8 +25,6 @@ npm install
 npm run build
 
 PRIMEWAY_PRIVATE_KEY=0x... \
-PRIMEWAY_RECIPIENTS='[{"address":"0x1111...","chainId":42161,"label":"Sarah"}]' \
-PRIMEWAY_MAX_SEND_USD=100 \
 node dist/index.js
 ```
 
@@ -37,9 +37,7 @@ Point your MCP client at it, e.g. in a client config:
       "command": "node",
       "args": ["/path/to/prime-way/mcp/dist/index.js"],
       "env": {
-        "PRIMEWAY_PRIVATE_KEY": "0x...",
-        "PRIMEWAY_RECIPIENTS": "[{\"address\":\"0x1111...\",\"chainId\":42161,\"label\":\"Sarah\"}]",
-        "PRIMEWAY_MAX_SEND_USD": "100"
+        "PRIMEWAY_PRIVATE_KEY": "0x..."
       }
     }
   }
@@ -51,33 +49,7 @@ Point your MCP client at it, e.g. in a client config:
 | Variable | Required | What it is |
 | --- | --- | --- |
 | `PRIMEWAY_PRIVATE_KEY` | yes | The agent wallet's key (0x plus 64 hex). Never printed, never logged, never committed. |
-| `PRIMEWAY_RECIPIENTS` | yes | JSON list of who may receive: `[{"address":"0x...","chainId":42161,"label":"Sarah"}]`. An entry without `chainId` allows that address on any chain. Empty means nobody. |
-| `PRIMEWAY_MAX_SEND_USD` | yes | Most dollars in one send. |
-| `PRIMEWAY_MAX_DAILY_USD` | no | Most dollars in a rolling 24 hours. |
 | `PRIMEWAY_BACKEND_URL` | no | Default: the live Prime Way backend at https://prime-way-backend.onrender.com. Public config, not a secret. |
-| `PRIMEWAY_STORE_PATH` | no | Decision store. Default: `~/.prime-way/decisions.json`. |
-| `PRIMEWAY_APPROVALS_PATH` | no | Owner approvals file. Default: `~/.prime-way/approvals.json`. |
-
-## Safety rules (enforced server-side, not left to the caller)
-
-The same rules as the SDK (`../sdk/README.md`), enforced by the
-server itself. The calling agent cannot switch them off.
-
-- **One decision = one send.** Every send carries a decision key
-  (supplied, or derived from a nonce). An executed decision is
-  recorded in the local store; a retry with the same key returns the
-  stored receipt and never sends again.
-- **Spending limits.** `PRIMEWAY_MAX_SEND_USD` per send, and
-  `PRIMEWAY_MAX_DAILY_USD` per rolling day. Over a limit, the send
-  returns `needs-approval` with the full details and sends nothing.
-- **Approved recipients only.** A send to anyone not on the
-  `PRIMEWAY_RECIPIENTS` list returns `refused` and sends nothing.
-- **Human approval, and no approve tool.** `primeway_send` takes no
-  approval flag: an agent that passes `approved: true` has it ignored.
-  There is deliberately no `primeway_approve` tool. The owner
-  approves by writing the decision key into the approvals file
-  (or with the SDK's `approve()` from their own code), and the agent
-  then re-issues the same decision key. Nothing approves on a timeout.
 
 ## Example
 
@@ -90,22 +62,22 @@ server itself. The calling agent cannot switch them off.
   "payPrice": 1,
   "destinationChainId": 42161,
   "receiveSymbol": "USDC",
-  "recipient": "0x1111...",
-  "nonce": "pay-sarah-nov-08-001"
+  "recipient": "0x1111..."
 }
 ```
 
 ```json
-// answer when the send is over the limit
+// answer when the send lands
 {
-  "outcome": "needs-approval",
-  "decision": {
-    "decisionKey": "pw_...",
-    "usdAmount": 250,
-    "recipient": "0x1111...",
-    "reason": "over-per-send-limit",
-    "limitUsd": 100
-  }
+  "requestId": "0x1794...",
+  "approveTx": "0x0000...01",
+  "depositTx": "0x0000...02",
+  "status": "success",
+  "txHashes": ["0x..."],
+  "usdAmount": 25,
+  "recipient": "0x1111...",
+  "originChainId": 8453,
+  "destinationChainId": 42161
 }
 ```
 

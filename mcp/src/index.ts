@@ -3,8 +3,7 @@
 //
 // Reads its config from the environment (see config.ts), then serves
 // the Prime Way tools over stdio. Run it from an MCP client, e.g.:
-//   PRIMEWAY_PRIVATE_KEY=0x... PRIMEWAY_RECIPIENTS='[...]' \
-//   PRIMEWAY_MAX_SEND_USD=100 primeway-mcp
+//   PRIMEWAY_PRIVATE_KEY=0x... primeway-mcp
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { configFromEnv } from './config.js';

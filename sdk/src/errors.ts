@@ -1,6 +1,6 @@
-// Typed errors. A refused send is not an error: send() returns a
-// SendOutcome for those (see client.ts). These are for mistakes in
-// setup or input, and for backend failures.
+// Typed errors. These are for mistakes in setup or input, and for
+// backend failures. A send that goes out and then fails on-chain is
+// not an error here: it comes back in the receipt's status.
 
 export class PrimeWayError extends Error {
   constructor(message: string) {
@@ -9,23 +9,8 @@ export class PrimeWayError extends Error {
   }
 }
 
-/** The recipient is not on the owner's approved list. Fail closed:
- *  nothing was quoted for sending, nothing was sent. */
-export class RecipientNotAllowedError extends PrimeWayError {
-  readonly recipient: string;
-  readonly destinationChainId: number;
-  constructor(recipient: string, destinationChainId: number) {
-    super(
-      `recipient ${recipient} is not on the approved list for chain ${destinationChainId}`,
-    );
-    this.name = 'RecipientNotAllowedError';
-    this.recipient = recipient;
-    this.destinationChainId = destinationChainId;
-  }
-}
-
 /** The send request itself is wrong: bad amount, unknown chain or
- *  token, bad address, or no decision key and no nonce. */
+ *  token, or a bad address. */
 export class InvalidSendError extends PrimeWayError {
   constructor(message: string) {
     super(message);

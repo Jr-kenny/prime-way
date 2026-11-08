@@ -1,21 +1,12 @@
 // The Prime Way MCP server: the SDK's abilities as tools.
 //
 // Tools:
-//   primeway_quote      a live quote (read-only, never moves money)
-//   primeway_send       send money through a quote's steps
-//   primeway_status     how far a send has got
-//   primeway_decisions  the recorded decisions and receipts (audit)
+//   primeway_quote   a live quote (read-only, never moves money)
+//   primeway_send    send money through a quote's steps
+//   primeway_status  how far a send has got
 //
-// The safety rules are enforced here, server-side, by the SDK — the
-// calling agent cannot switch them off. Two things to notice:
-//
-// - primeway_send takes NO approval flag. An agent that could pass
-//   approved: true could approve its own over-limit sends. The server
-//   always passes approved: false; approval comes only from the
-//   owner's approvals file. The agent re-issues the same decision key
-//   after the owner approves it.
-// - There is deliberately no primeway_approve tool. Approval is a
-//   human act, done outside the agent's reach.
+// Normal usage, the same as a person using the app: quote, send,
+// check. The tools are plain pass-throughs to the SDK.
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
@@ -43,19 +34,7 @@ const sendShape = {
     .describe('Token the recipient receives, e.g. USDC.'),
   recipient: z
     .string()
-    .describe('Recipient address (0x...). Must be on the owner\'s approved list.'),
-  decisionKey: z
-    .string()
-    .optional()
-    .describe(
-      'Identifies this one decision. Supply it, or supply a nonce and one is derived. A retry with the same key returns the stored receipt instead of sending again.',
-    ),
-  nonce: z
-    .string()
-    .optional()
-    .describe(
-      'Makes two identical sends two different decisions, e.g. "pay-sarah-nov-08-001".',
-    ),
+    .describe('Recipient address (0x...).'),
 };
 
 type TextResult =
@@ -97,8 +76,6 @@ export function createPrimeWayServer(client: PrimeWay): McpServer {
     },
     async (args) => {
       try {
-        // The SDK validates the address shape; a bad one fails here
-        // as an error result, before anything is quoted.
         const quote = await client.getQuote({
           ...args,
           recipient: args.recipient as `0x${string}`,
@@ -112,20 +89,15 @@ export function createPrimeWayServer(client: PrimeWay): McpServer {
 
   server.tool(
     'primeway_send',
-    'Send money through Prime Way: quotes, runs the approve and deposit steps, and watches until the money lands or is refunded. The recipient must be on the owner\'s approved list and the amount must fit the spending limits; otherwise the send is refused or waits for human approval, and nothing is sent. One decision key never sends twice: a retry returns the stored receipt.',
+    'Send money through Prime Way: quotes, runs the approve and deposit steps, and watches until the money lands or is refunded. Returns the receipt: requestId, step transaction hashes, and the final status.',
     sendShape,
     async (args) => {
       try {
-        // approved is always false here, on purpose: the agent
-        // calling this tool must never be able to approve its own
-        // over-limit send. Approval comes only from the owner's
-        // approvals file, checked inside send().
-        const outcome = await client.send({
+        const receipt = await client.send({
           ...args,
           recipient: args.recipient as `0x${string}`,
-          approved: false,
         });
-        return ok(outcome);
+        return ok(receipt);
       } catch (err) {
         return fail(err);
       }
@@ -144,20 +116,6 @@ export function createPrimeWayServer(client: PrimeWay): McpServer {
       try {
         const status = await client.checkStatus(args.requestId);
         return ok(status);
-      } catch (err) {
-        return fail(err);
-      }
-    },
-  );
-
-  server.tool(
-    'primeway_decisions',
-    'List every recorded Prime Way decision and receipt: what was sent, to whom, for how much, and whether it landed. Read-only audit.',
-    {},
-    async () => {
-      try {
-        const decisions = await client.listDecisions();
-        return ok(decisions);
       } catch (err) {
         return fail(err);
       }

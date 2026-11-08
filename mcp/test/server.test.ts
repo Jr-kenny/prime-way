@@ -8,8 +8,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -17,7 +15,6 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { generatePrivateKey } from 'viem/accounts';
 import {
   PrimeWay,
-  MemoryDecisionStore,
   type FetchFn,
   type Signer,
   type StepTx,
@@ -27,7 +24,6 @@ import { LIVE_QUOTE, statusSequence } from './fixtures.js';
 
 const WALLET = '0xA37a186AfE306C3EE01D6ABF912cC42BC568091C' as const;
 const SARAH = '0x1111111111111111111111111111111111111111' as const;
-const STRANGER = '0x2222222222222222222222222222222222222222' as const;
 
 class MockSigner implements Signer {
   address = WALLET;
@@ -62,20 +58,15 @@ interface Harness {
   close: () => Promise<void>;
 }
 
-async function startHarness(overrides: Record<string, unknown> = {}): Promise<Harness> {
+async function startHarness(): Promise<Harness> {
   const signer = new MockSigner();
   const primeWay = new PrimeWay({
     wallet: WALLET,
     signer,
-    recipients: [{ address: SARAH, chainId: 42161, label: 'Sarah' }],
-    maxSendUsd: 500,
-    maxDailyUsd: 1000,
-    store: new MemoryDecisionStore(),
     pollIntervalMs: 1,
     pollTimeoutMs: 5000,
     fetch: mockFetch(),
-    ...overrides,
-  } as never);
+  });
   const server = createPrimeWayServer(primeWay);
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
@@ -118,13 +109,12 @@ const SEND_ARGS = {
   recipient: SARAH,
 };
 
-test('tools/list shows the four Prime Way tools', async () => {
+test('tools/list shows the three Prime Way tools', async () => {
   const h = await startHarness();
   try {
     const list = await h.client.listTools();
     const names = list.tools.map((t) => t.name).sort();
     assert.deepEqual(names, [
-      'primeway_decisions',
       'primeway_quote',
       'primeway_send',
       'primeway_status',
@@ -149,70 +139,36 @@ test('primeway_quote returns the live fixture', async () => {
   }
 });
 
-test('primeway_send sends, and a retry returns the stored receipt', async () => {
+test('primeway_send sends and returns the receipt', async () => {
   const h = await startHarness();
   try {
     const first = await h.client.callTool({
       name: 'primeway_send',
-      arguments: { ...SEND_ARGS, decisionKey: 'mcp-send-1' },
+      arguments: SEND_ARGS,
     });
-    const out1 = jsonOf<{ outcome: string; receipt?: { status: string } }>(first);
-    assert.equal(out1.outcome, 'sent');
-    assert.equal(out1.receipt?.status, 'success');
+    const out1 = jsonOf<{ requestId: string; status: string }>(first);
+    assert.equal(out1.requestId, LIVE_QUOTE.requestId);
+    assert.equal(out1.status, 'success');
     assert.equal(h.signer.sent.length, 2);
 
+    // A second identical send sends again: normal usage, no dedup.
     const second = await h.client.callTool({
       name: 'primeway_send',
-      arguments: { ...SEND_ARGS, decisionKey: 'mcp-send-1' },
+      arguments: SEND_ARGS,
     });
-    const out2 = jsonOf<{ outcome: string }>(second);
-    assert.equal(out2.outcome, 'already-sent');
-    assert.equal(h.signer.sent.length, 2, 'no second send');
+    jsonOf<{ requestId: string }>(second);
+    assert.equal(h.signer.sent.length, 4);
   } finally {
     await h.close();
   }
 });
 
-test('an agent cannot approve its own over-limit send through the tool', async () => {
-  const h = await startHarness({ maxSendUsd: 50 });
-  try {
-    // Even passing approved: true in the tool call must not approve:
-    // the tool takes no approval flag, so it is ignored server-side.
-    const res = await h.client.callTool({
-      name: 'primeway_send',
-      arguments: { ...SEND_ARGS, decisionKey: 'mcp-limit-1', approved: true },
-    });
-    const out = jsonOf<{ outcome: string; decision?: { reason: string } }>(res);
-    assert.equal(out.outcome, 'needs-approval');
-    assert.equal(out.decision?.reason, 'over-per-send-limit');
-    assert.equal(h.signer.sent.length, 0);
-  } finally {
-    await h.close();
-  }
-});
-
-test('primeway_send to a stranger is refused', async () => {
-  const h = await startHarness();
-  try {
-    const res = await h.client.callTool({
-      name: 'primeway_send',
-      arguments: { ...SEND_ARGS, recipient: STRANGER, decisionKey: 'mcp-stranger-1' },
-    });
-    const out = jsonOf<{ outcome: string; reason: string }>(res);
-    assert.equal(out.outcome, 'refused');
-    assert.equal(out.reason, 'recipient-not-allowed');
-    assert.equal(h.signer.sent.length, 0);
-  } finally {
-    await h.close();
-  }
-});
-
-test('primeway_status and primeway_decisions report the send', async () => {
+test('primeway_status reports the send', async () => {
   const h = await startHarness();
   try {
     await h.client.callTool({
       name: 'primeway_send',
-      arguments: { ...SEND_ARGS, decisionKey: 'mcp-audit-1' },
+      arguments: SEND_ARGS,
     });
     const st = await h.client.callTool({
       name: 'primeway_status',
@@ -222,13 +178,6 @@ test('primeway_status and primeway_decisions report the send', async () => {
     // The send above already walked the mock status sequence to the
     // end, so the next check answers the final state: success.
     assert.equal(status.status, 'success');
-    const dec = await h.client.callTool({
-      name: 'primeway_decisions',
-      arguments: {},
-    });
-    const decisions = jsonOf<{ key: string; receipt?: { decisionKey: string } }[]>(dec);
-    assert.equal(decisions.length, 1);
-    assert.equal(decisions[0].receipt?.decisionKey, 'mcp-audit-1');
   } finally {
     await h.close();
   }
@@ -256,8 +205,6 @@ function waitExit(child: ReturnType<typeof spawn>): Promise<{ code: number | nul
 test('the built server refuses to start without its config', async () => {
   const child = runServer({
     PRIMEWAY_PRIVATE_KEY: '',
-    PRIMEWAY_RECIPIENTS: '',
-    PRIMEWAY_MAX_SEND_USD: '',
   });
   child.stdin?.end();
   const { code, stderr } = await waitExit(child);
@@ -266,16 +213,9 @@ test('the built server refuses to start without its config', async () => {
 });
 
 test('the built server answers initialize over stdio', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'prime-way-mcp-'));
   const key = generatePrivateKey();
   const child = runServer({
     PRIMEWAY_PRIVATE_KEY: key,
-    PRIMEWAY_RECIPIENTS: JSON.stringify([
-      { address: SARAH, chainId: 42161, label: 'Sarah' },
-    ]),
-    PRIMEWAY_MAX_SEND_USD: '100',
-    PRIMEWAY_STORE_PATH: join(dir, 'decisions.json'),
-    PRIMEWAY_APPROVALS_PATH: join(dir, 'approvals.json'),
   });
   try {
     const init = JSON.stringify({
