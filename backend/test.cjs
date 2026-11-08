@@ -20,7 +20,21 @@ const SAMPLE_RELAY_RESPONSE = {
       action: "Confirm transaction in your wallet",
       description: "Sign an approval for USDC",
       kind: "transaction",
-      items: [{ status: "incomplete" }],
+      items: [
+        {
+          status: "incomplete",
+          data: {
+            from: "0xA37a186AfE306C3EE01D6ABF912cC42BC568091C",
+            to: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            data: "0x095ea7b30000000000000000000000004cd00e387622c35bddb9b4c962c136462338bc3100000000000000000000000000000000000000000000000000000000000f4240",
+            value: "0",
+            chainId: 8453,
+            gas: "73112",
+            maxFeePerGas: "6611743",
+            maxPriorityFeePerGas: "1100000",
+          },
+        },
+      ],
       requestId: "0x17941185062f91cbd8fa0fec080beb94fb3b8943f4647f8b25e19d1670cc53a7",
     },
     {
@@ -28,7 +42,21 @@ const SAMPLE_RELAY_RESPONSE = {
       action: "Confirm transaction in your wallet",
       description: "Depositing funds to the relayer to execute the swap for USDC",
       kind: "transaction",
-      items: [{ status: "incomplete" }],
+      items: [
+        {
+          status: "incomplete",
+          data: {
+            from: "0xA37a186AfE306C3EE01D6ABF912cC42BC568091C",
+            to: "0x4cd00e387622c35bddb9b4c962c136462338bc31",
+            data: "0xe8017952000000000000000000000000a37a186afe306c3ee01d6abf912cc42bc568091c000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000000f42407678a5cc85d0f3abdfcfb01e3ea52ec6c44f71f9449dd9a65f72573dda4a4374",
+            value: "0",
+            chainId: 8453,
+            gas: "76194",
+            maxFeePerGas: "6611743",
+            maxPriorityFeePerGas: "1100000",
+          },
+        },
+      ],
       requestId: "0x17941185062f91cbd8fa0fec080beb94fb3b8943f4647f8b25e19d1670cc53a7",
     },
   ],
@@ -117,6 +145,29 @@ async function main() {
       shaped.steps.map((s) => s.id),
       ["approve", "deposit"]
     );
+  });
+  check("shaping: steps carry tx data for the wallet", () => {
+    const shaped = shapeQuote(SAMPLE_RELAY_RESPONSE, GOOD_INPUT);
+    const [approve, deposit] = shaped.steps;
+    assert.deepStrictEqual(approve.tx, {
+      to: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      data: "0x095ea7b30000000000000000000000004cd00e387622c35bddb9b4c962c136462338bc3100000000000000000000000000000000000000000000000000000000000f4240",
+      value: "0",
+      chainId: 8453,
+    });
+    assert.strictEqual(
+      deposit.tx.to,
+      "0x4cd00e387622c35bddb9b4c962c136462338bc31"
+    );
+    assert.strictEqual(deposit.tx.chainId, 8453);
+    assert.ok(deposit.tx.data.startsWith("0xe8017952"));
+  });
+  check("shaping: step without item data gets tx null", () => {
+    const shaped = shapeQuote(
+      { ...SAMPLE_RELAY_RESPONSE, steps: [{ id: "sign", action: "Sign", description: "Sign off-chain", items: [] }] },
+      GOOD_INPUT
+    );
+    assert.strictEqual(shaped.steps[0].tx, null);
   });
   check("shaping: feesUsd about 0.025", () => {
     const shaped = shapeQuote(SAMPLE_RELAY_RESPONSE, GOOD_INPUT);

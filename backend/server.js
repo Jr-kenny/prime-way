@@ -64,11 +64,29 @@ function shapeQuote(relay, body) {
     outputAmountFormatted: out ? out.amountFormatted : null,
     outputCurrency: (currency && currency.symbol) || body.destinationCurrency,
     feesUsd: sumFeesUsd(relay.fees),
-    steps: (relay.steps || []).map((step) => ({
-      id: step.id,
-      action: step.action,
-      description: step.description,
-    })),
+    // Each step carries the transaction the wallet must send (to, data,
+    // value, chainId), taken from the step's first item. The Prime Way
+    // app sends exactly what the quote describes, one step at a time.
+    // A step with no transaction data gets tx: null, and the app keeps
+    // its Send button off for that quote.
+    steps: (relay.steps || []).map((step) => {
+      const item = step.items && step.items[0];
+      const d = item && item.data;
+      return {
+        id: step.id,
+        action: step.action,
+        description: step.description,
+        tx:
+          d && d.to && d.data
+            ? {
+                to: d.to,
+                data: d.data,
+                value: String(d.value ?? "0"),
+                chainId: Number(d.chainId),
+              }
+            : null,
+      };
+    }),
     timeEstimate: relay.details ? relay.details.timeEstimate : null,
   };
 }

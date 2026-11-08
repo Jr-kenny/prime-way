@@ -56,12 +56,17 @@ Success returns:
   "outputCurrency": "USDC",
   "feesUsd": 0.024928,
   "steps": [
-    { "id": "approve", "action": "Confirm transaction in your wallet", "description": "Sign an approval for USDC" },
-    { "id": "deposit", "action": "Confirm transaction in your wallet", "description": "Depositing funds to the relayer to execute the swap for USDC" }
+    { "id": "approve", "action": "Confirm transaction in your wallet", "description": "Sign an approval for USDC", "tx": { "to": "0x8335...", "data": "0x095ea7b3...", "value": "0", "chainId": 8453 } },
+    { "id": "deposit", "action": "Confirm transaction in your wallet", "description": "Depositing funds to the relayer to execute the swap for USDC", "tx": { "to": "0x4cd0...", "data": "0xe8017952...", "value": "0", "chainId": 8453 } }
   ],
   "timeEstimate": 1
 }
 ```
+
+Each step's `tx` is the transaction the wallet must send for that step
+(`to`, `data`, `value`, `chainId`, taken from the step's first item). A
+step with no transaction data gets `"tx": null`, and the app keeps its
+Send button off for that quote.
 
 The service only asks Relay for a quote. It never signs anything and never
 sends a transaction. The `steps` are what the wallet would sign later, when
