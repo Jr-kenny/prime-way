@@ -14,8 +14,8 @@ const PORT = Number(process.env.PORT || 3000);
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 // Fee lines summed into feesUsd. Relay's `relayer` line already contains
-// `relayerGas` + `relayerService`, so `relayerService` is not added again.
-const FEE_LINES = ["gas", "relayer", "relayerGas", "app", "subsidized"];
+// `relayerGas` + `relayerService`, so neither is added again.
+const FEE_LINES = ["gas", "relayer", "app", "subsidized"];
 
 function sumFeesUsd(fees) {
   let total = 0;

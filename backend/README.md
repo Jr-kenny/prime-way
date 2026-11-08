@@ -54,7 +54,7 @@ Success returns:
   "outputAmount": "976173",
   "outputAmountFormatted": "0.976173",
   "outputCurrency": "USDC",
-  "feesUsd": 0.028651,
+  "feesUsd": 0.024928,
   "steps": [
     { "id": "approve", "action": "Confirm transaction in your wallet", "description": "Sign an approval for USDC" },
     { "id": "deposit", "action": "Confirm transaction in your wallet", "description": "Depositing funds to the relayer to execute the swap for USDC" }
@@ -67,11 +67,10 @@ The service only asks Relay for a quote. It never signs anything and never
 sends a transaction. The `steps` are what the wallet would sign later, when
 the app adds the send flow.
 
-About `feesUsd`: it sums the fee lines Relay reports (gas, relayer,
-relayerGas, app, subsidized). Relay's `relayer` line already contains
-`relayerGas` and `relayerService`, so `relayerService` is not added again.
-The exact out-of-pocket total is gas + relayer, about $0.025 on the sample
-quote; the summed figure above is about $0.029.
+About `feesUsd`: it sums the fee lines Relay reports (gas, relayer, app,
+subsidized). Relay's `relayer` line already contains `relayerGas` and
+`relayerService`, so neither is added again. On the sample quote the total
+is gas + relayer, about $0.025.
 
 ## Test it
 
@@ -80,6 +79,6 @@ node test.cjs
 ```
 
 The test checks response shaping against a real Relay response recorded
-2026-11-08 (1 USDC Base to USDC Arbitrum: 0.976173 out, about $0.029 in
+2026-11-08 (1 USDC Base to USDC Arbitrum: 0.976173 out, about $0.025 in
 fees), checks input validation, checks `GET /health`, and checks that a
 missing `RELAY_API_KEY` exits with a clear message. It never calls Relay.

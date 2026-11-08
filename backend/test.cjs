@@ -118,11 +118,11 @@ async function main() {
       ["approve", "deposit"]
     );
   });
-  check("shaping: feesUsd about 0.029", () => {
+  check("shaping: feesUsd about 0.025", () => {
     const shaped = shapeQuote(SAMPLE_RELAY_RESPONSE, GOOD_INPUT);
     assert.ok(
-      Math.abs(shaped.feesUsd - 0.029) < 0.001,
-      `feesUsd was ${shaped.feesUsd}, expected about 0.029`
+      Math.abs(shaped.feesUsd - 0.024928) < 0.001,
+      `feesUsd was ${shaped.feesUsd}, expected about 0.024928`
     );
   });
 
