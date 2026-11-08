@@ -10,7 +10,7 @@
 const assert = require("node:assert");
 const { spawn } = require("node:child_process");
 const path = require("node:path");
-const { validateQuoteInput, shapeQuote } = require("./server.js");
+const { validateQuoteInput, shapeQuote, shapeStatus } = require("./server.js");
 
 const SAMPLE_RELAY_RESPONSE = {
   requestId: "0x17941185062f91cbd8fa0fec080beb94fb3b8943f4647f8b25e19d1670cc53a7",
@@ -125,6 +125,14 @@ async function main() {
       `feesUsd was ${shaped.feesUsd}, expected about 0.024928`
     );
   });
+  check("shaping: status waiting (verified live 2026-11-08)", () => {
+    const shaped = shapeStatus(
+      { status: "waiting", quoteCreatedAt: 1794122301010 },
+      "0x17941223001e3ab53a80dc0b4caa968f248d3e4be40d4ff1382bf8edaf25d813"
+    );
+    assert.strictEqual(shaped.status, "waiting");
+    assert.deepStrictEqual(shaped.txHashes, []);
+  });
 
   // 2. Input validation.
   check("validation: good input passes", () => {
@@ -186,6 +194,14 @@ async function main() {
     const badAmountBody = await badAmount.json();
     assert.match(badAmountBody.error, /amount/);
     console.log("ok - http: POST /quote with bad amount returns 400");
+
+    const badStatus = await fetch(
+      `http://127.0.0.1:${port}/status?requestId=not-a-request-id`
+    );
+    assert.strictEqual(badStatus.status, 400);
+    const badStatusBody = await badStatus.json();
+    assert.match(badStatusBody.error, /requestId/);
+    console.log("ok - http: GET /status with bad requestId returns 400");
   } finally {
     server.kill();
   }

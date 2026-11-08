@@ -1,8 +1,10 @@
 // Prime Way backend: Relay quote service.
 //
 // Small Node service using only Node built-ins (no npm install needed).
-// One endpoint, POST /quote, takes a send request from the Prime Way app,
-// asks Relay for a cross-chain quote and returns a small clean JSON.
+// Two endpoints: POST /quote takes a send request from the Prime Way app,
+// asks Relay for a cross-chain quote and returns a small clean JSON;
+// GET /status?requestId=... asks Relay how far a quoted send has got
+// (waiting, pending, success, refund) so the app can show it landing.
 //
 // The Relay API key is read from the RELAY_API_KEY environment variable at
 // runtime. It never lives in this repo, in code, or in logs.
@@ -10,8 +12,10 @@
 const http = require("node:http");
 
 const RELAY_URL = "https://api.relay.link/quote/v2";
+const RELAY_STATUS_URL = "https://api.relay.link/intents/status/v3";
 const PORT = Number(process.env.PORT || 3000);
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+const REQUEST_ID_RE = /^0x[0-9a-fA-F]{64}$/;
 
 // Fee lines summed into feesUsd. Relay's `relayer` line already contains
 // `relayerGas` + `relayerService`, so neither is added again.
@@ -138,6 +142,57 @@ async function handleQuote(req, res) {
   sendJson(res, 200, shapeQuote(relay, body));
 }
 
+// Relay's status shape was verified live 2026-11-08 for a quote that was
+// never executed: {"status": "waiting", "quoteCreatedAt": ...}. The tx-hash
+// fields below are collected defensively; only "waiting" has been seen
+// live, so a finished send may carry hashes in places this does not know
+// yet. Statuses: waiting, depositing, pending, success, refund are final;
+// failure is not final, the fill can still retry or move to refund.
+function shapeStatus(relay, requestId) {
+  const hashes = [];
+  const collect = (v) => {
+    if (typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v)) hashes.push(v);
+    if (Array.isArray(v)) v.forEach(collect);
+  };
+  collect(relay.txHashes);
+  if (relay.details) {
+    collect(relay.details.txHashes);
+    collect(relay.details.destinationTxHash);
+    collect(relay.details.destinationTxHashes);
+    collect(relay.details.inTxHashes);
+    collect(relay.details.outTxHashes);
+  }
+  return { requestId, status: relay.status || null, txHashes: [...new Set(hashes)] };
+}
+
+async function handleStatus(req, res) {
+  const url = new URL(req.url, "http://localhost");
+  const requestId = url.searchParams.get("requestId") || "";
+  if (!REQUEST_ID_RE.test(requestId)) {
+    sendJson(res, 400, { error: "requestId must be 0x followed by 64 hex characters" });
+    return;
+  }
+
+  let relayRes;
+  try {
+    relayRes = await fetch(
+      `${RELAY_STATUS_URL}?requestId=${encodeURIComponent(requestId)}`,
+      { headers: { "x-api-key": process.env.RELAY_API_KEY } }
+    );
+  } catch {
+    sendJson(res, 502, { error: "could not reach Relay" });
+    return;
+  }
+
+  if (!relayRes.ok) {
+    sendJson(res, 502, { error: "Relay status failed", relayStatus: relayRes.status });
+    return;
+  }
+
+  const relay = await relayRes.json();
+  sendJson(res, 200, shapeStatus(relay, requestId));
+}
+
 function createServer() {
   return http.createServer((req, res) => {
     // Browser preflight for cross-origin POST /quote.
@@ -157,6 +212,12 @@ function createServer() {
     }
     if (req.method === "POST" && req.url === "/quote") {
       handleQuote(req, res).catch(() => {
+        if (!res.headersSent) sendJson(res, 500, { error: "internal error" });
+      });
+      return;
+    }
+    if (req.method === "GET" && req.url.startsWith("/status")) {
+      handleStatus(req, res).catch(() => {
         if (!res.headersSent) sendJson(res, 500, { error: "internal error" });
       });
       return;
@@ -184,4 +245,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { createServer, validateQuoteInput, shapeQuote, sumFeesUsd };
+module.exports = { createServer, validateQuoteInput, shapeQuote, shapeStatus, sumFeesUsd };

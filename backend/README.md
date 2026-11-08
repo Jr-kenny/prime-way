@@ -67,6 +67,25 @@ The service only asks Relay for a quote. It never signs anything and never
 sends a transaction. The `steps` are what the wallet would sign later, when
 the app adds the send flow.
 
+### GET /status?requestId=0x...
+
+Asks Relay how far a quoted send has got. `requestId` is the one from the
+quote (0x plus 64 hex characters). Success returns:
+
+```json
+{
+  "requestId": "0x1794...",
+  "status": "waiting",
+  "txHashes": []
+}
+```
+
+Statuses: `waiting` (deposit not seen yet), `depositing`, `pending`
+(deposit seen, fill on its way), `success` (the money reached the
+recipient), `refund`. `success` and `refund` are final. `failure` is not
+final: the fill can still retry or move to `refund`. Poll every few seconds
+until `success` or `refund`. A bad `requestId` returns `400`.
+
 About `feesUsd`: it sums the fee lines Relay reports (gas, relayer, app,
 subsidized). Relay's `relayer` line already contains `relayerGas` and
 `relayerService`, so neither is added again. On the sample quote the total
