@@ -1,0 +1,1618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Prime Way — Send money across chains</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Nunito+Sans:ital,opsz,wght@0,6..12,400;0,6..12,600;0,6..12,700;1,6..12,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --page:#FBF7F2; --page2:#F3ECE3; --ink:#221812; --ink2:#5C4A3E; --line:#E7DACB;
+    --card:#FFFFFF; --cardline:#EADFD2;
+    --fox:#E8641C; --fox-deep:#C24E10; --amber:#F5A524; --teal:#0E9F8A;
+    --shadow:0 24px 60px -24px rgba(94,52,18,.28);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --page:#0C0906; --page2:#14100B; --ink:#F7EFE6; --ink2:#C4B2A2; --line:#2A211A;
+      --card:#171310; --cardline:#2C241C;
+      --fox:#F07A35; --fox-deep:#FF9A57; --amber:#FFB84D; --teal:#2ED3B7;
+      --shadow:0 24px 60px -24px rgba(0,0,0,.8);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:"Nunito Sans",system-ui,sans-serif;font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,.disp{font-family:"Nunito",sans-serif;line-height:1.12;letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  section{padding:84px 0 10px}
+  .sec-head{max-width:640px;margin-bottom:34px}
+  .sec-head h2{font-size:clamp(28px,4vw,40px);font-weight:900;margin:0 0 10px}
+  .sec-head p{color:var(--ink2);margin:0;font-size:18px}
+  .num-badge{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--fox);color:#fff;font-family:"Nunito";font-weight:900;font-size:15px;margin-bottom:14px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:64px 0 30px;text-align:center}
+  .hero .icon-big{width:118px;height:118px;margin:0 auto 26px;filter:drop-shadow(0 18px 28px rgba(232,100,28,.35))}
+  .hero h1{font-size:clamp(44px,7vw,72px);font-weight:900;margin:0 0 8px}
+  .hero h1 em{font-style:normal;color:var(--fox)}
+  .hero .tag{font-size:clamp(19px,2.6vw,24px);color:var(--ink2);max-width:560px;margin:0 auto 8px}
+  .hero .sub{font-size:15px;color:var(--ink2);opacity:.85}
+  .hero-cta{margin-top:26px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-family:"Nunito";font-weight:800;font-size:16px;padding:14px 24px;border-radius:999px;text-decoration:none;transition:transform .15s ease, box-shadow .15s ease}
+  .btn:active{transform:scale(.97)}
+  .btn-fox{background:var(--fox);color:#fff;box-shadow:0 12px 26px -10px rgba(232,100,28,.55)}
+  .btn-ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+  .play-soon{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-family:"Nunito";font-weight:800;font-size:14px;color:var(--ink2);border:2px dashed var(--line);border-radius:999px;padding:10px 18px}
+  .feel-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+  .feel-chip{background:var(--card);border:1px solid var(--cardline);border-radius:999px;padding:8px 16px;font-family:"Nunito";font-weight:800;font-size:14px}
+  .feel-chip span{color:var(--fox);margin-right:6px}
+
+  /* ---------- phone ---------- */
+  .phone{--radius:44px;width:320px;max-width:88vw;border-radius:var(--radius);padding:11px;background:#111;box-shadow:var(--shadow), inset 0 0 0 2px #2c2c2c;flex:none}
+  .phone .scr{border-radius:34px;overflow:hidden;height:640px;display:flex;flex-direction:column;position:relative;
+    --bg:#FFFFFF; --surface:#FFFFFF; --soft:#F6F6F4; --soft2:#ECECE8; --ink:#221812; --muted:#6F6359; --line:#EBEBE6; --balcard:#F4EFE8; --dock:#FFFFFF;
+    --accent:#E8641C; --accent-ink:#FFFFFF; --accent-soft:#FDEEE2; --good:#0E9F8A; --good-soft:#E2F5F1; --bad:#D64545; --bad-soft:#FDECEC;
+    background:var(--bg); color:var(--ink); font-family:"Nunito Sans",sans-serif}
+  .phone.dark .scr{--bg:#000000; --surface:#0A0A0A; --soft:#141210; --soft2:#1E1A16; --ink:#F7EFE6; --muted:#A08D7D; --line:#241E18; --balcard:#262019; --dock:#171310;
+    --accent:#F07A35; --accent-ink:#1A0E04; --accent-soft:#2A1A0E; --good:#2ED3B7; --good-soft:#0C2420; --bad:#FF7A6B; --bad-soft:#2A1210}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:96px;height:24px;background:#111;border-radius:14px;z-index:30}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:12px 24px 2px;font-size:12.5px;font-weight:700;font-family:"Nunito"}
+  .statusbar .sicons{display:flex;gap:5px;align-items:center}
+  .sbar{display:inline-block;background:currentColor;border-radius:2px}
+  .scr-body{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;padding:8px 22px 18px;position:relative;scrollbar-width:none}
+  .scr-body::-webkit-scrollbar{display:none}
+  .homebar{width:120px;height:5px;border-radius:3px;background:var(--ink);opacity:.28;margin:6px auto 4px;flex:none}
+
+  /* in-app bits */
+  .app-h{font-family:"Nunito";font-weight:900}
+  .greet{font-size:15px;color:var(--muted);font-weight:600}
+  .bal-label{font-size:13px;color:var(--muted);font-weight:700;margin-top:16px}
+  .bal{font-family:"Nunito";font-weight:900;font-size:42px;letter-spacing:-.02em;line-height:1.05}
+  .bal small{font-size:19px;color:var(--muted);font-weight:800}
+  .bal-usd{font-size:14px;color:var(--muted);font-weight:600}
+  .bigbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:var(--accent-ink);border:none;width:100%;padding:17px;border-radius:20px;font-family:"Nunito";font-weight:900;font-size:18px;cursor:pointer;margin-top:20px;min-height:56px;transition:transform .15s ease}
+  .bigbtn:active{transform:scale(.97)}
+  .bigbtn.secondary{background:var(--soft);color:var(--ink)}
+  .bigbtn:disabled{opacity:.45;cursor:default}
+  .sec-label{font-family:"Nunito";font-weight:800;font-size:14px;margin:24px 0 10px;color:var(--ink)}
+  .person{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:16px;cursor:pointer;border:none;background:transparent;width:100%;text-align:left;color:var(--ink);font-family:inherit;min-height:60px}
+  .person:hover,.person:active{background:var(--soft)}
+  .avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:"Nunito";font-weight:900;font-size:17px;color:#fff;flex:none}
+  .person .pname{font-family:"Nunito";font-weight:800;font-size:16.5px;line-height:1.15}
+  .person .pmeta{font-size:13px;color:var(--muted);font-weight:600}
+  .person .chev{margin-left:auto;color:var(--muted);font-size:20px}
+  .txrow{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
+  .txrow:last-child{border-bottom:none}
+  .tx-ic{width:40px;height:40px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;flex:none}
+  .tx-ic svg{width:19px;height:19px}
+  .pill{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;font-family:"Nunito"}
+  .pill.ok{background:var(--good-soft);color:var(--good)}
+  .pill.wait{background:var(--accent-soft);color:var(--accent)}
+  .tabbar{display:flex;gap:4px;margin:2px 16px 6px;padding:7px;flex:none;background:var(--dock);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 24px -14px rgba(60,35,10,.35)}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--muted);background:none;border:none;cursor:pointer;font-family:"Nunito";padding:6px 0;border-radius:999px}
+  .tab.on{color:var(--accent);background:var(--accent-soft)}
+  .tab svg{width:23px;height:23px}
+  .backbtn{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--ink);font-family:"Nunito";font-weight:800;font-size:15px;cursor:pointer;padding:8px 0;min-height:44px}
+  .searchbox{display:flex;align-items:center;gap:10px;background:var(--soft);border-radius:16px;padding:0 16px;margin:6px 0 12px;border:2px solid transparent}
+  .searchbox:focus-within{border-color:var(--accent);background:var(--surface)}
+  .searchbox input{flex:1;border:none;background:transparent;outline:none;font-size:17px;font-family:inherit;color:var(--ink);height:52px;font-weight:600}
+  .searchbox input::placeholder{color:var(--muted)}
+  .netrow{display:flex;align-items:center;gap:12px;width:100%;padding:13px 10px;border-radius:16px;border:none;background:transparent;cursor:pointer;text-align:left;color:var(--ink);font-family:inherit;min-height:60px}
+  .netrow:hover,.netrow:active{background:var(--soft)}
+  .netdot{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:"Nunito";font-weight:900;font-size:15px;color:#fff;flex:none}
+  .amount-wrap{text-align:center;margin-top:8px}
+  .amount-input{display:flex;align-items:baseline;justify-content:center;gap:6px}
+  .amount-input input{border:none;background:transparent;outline:none;text-align:center;font-family:"Nunito";font-weight:900;font-size:52px;width:170px;color:var(--ink);letter-spacing:-.02em}
+  .amount-input .unit{font-family:"Nunito";font-weight:800;font-size:20px;color:var(--muted)}
+  .receive-box{background:var(--accent-soft);border-radius:22px;padding:18px;margin-top:20px;text-align:center}
+  .receive-box .rlab{font-size:13.5px;font-weight:700;color:var(--muted)}
+  .receive-box .rnum{font-family:"Nunito";font-weight:900;font-size:37px;color:var(--accent);line-height:1.1;letter-spacing:-.01em}
+  .receive-box .rusd{font-size:13.5px;color:var(--muted);font-weight:600}
+  .fee-note{font-size:13px;color:var(--muted);text-align:center;margin-top:12px;font-weight:600}
+  .confirm-card{background:var(--soft);border-radius:22px;padding:18px;margin-top:14px}
+  .confirm-card .crow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:15px}
+  .confirm-card .crow span:first-child{color:var(--muted);font-weight:600}
+  .confirm-card .crow span:last-child{font-weight:800;font-family:"Nunito"}
+  .fld{margin-top:16px}
+  .fld label{display:block;font-family:"Nunito";font-weight:800;font-size:13.5px;margin-bottom:7px}
+  .fld .fin{display:flex;align-items:center;gap:8px;background:var(--soft);border-radius:14px;padding:0 14px;border:2px solid transparent}
+  .fld .fin input{flex:1;border:none;background:transparent;outline:none;height:50px;font-size:16px;font-family:inherit;font-weight:600;color:var(--ink);min-width:0}
+  .fld .paste{font-family:"Nunito";font-weight:800;font-size:13px;color:var(--accent);background:var(--accent-soft);border:none;border-radius:999px;padding:7px 13px;cursor:pointer;flex:none}
+  .chiprow{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border:2px solid var(--line);background:var(--surface);color:var(--ink);font-family:"Nunito";font-weight:800;font-size:14px;padding:10px 16px;border-radius:999px;cursor:pointer;min-height:44px}
+  .chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .mascot-msg{display:flex;gap:12px;align-items:flex-start;background:var(--soft);border-radius:18px;padding:12px 14px;margin-top:16px}
+  .mascot-msg p{margin:0;font-size:14.5px;font-weight:600;line-height:1.4}
+  .center-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 6px}
+  .fadein{animation:fadeUp .45s cubic-bezier(.22,1,.36,1) both}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .pop{animation:pop .5s cubic-bezier(.34,1.56,.64,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+
+  /* travel animation */
+  .travel{position:relative;height:190px;width:100%;margin:8px 0 2px}
+  .travel svg.route{position:absolute;inset:0;width:100%;height:100%}
+  .travel .route-path{stroke:var(--line);stroke-width:3;fill:none;stroke-linecap:round;stroke-dasharray:1 9}
+  .travel .route-done{stroke:var(--accent);stroke-width:3.5;fill:none;stroke-linecap:round}
+  .coin{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:radial-gradient(circle at 32% 30%, #FFD98A, var(--amber) 55%, #D9820F);display:flex;align-items:center;justify-content:center;font-family:"Nunito";font-weight:900;color:#7A4A00;font-size:19px;box-shadow:0 8px 18px -4px rgba(217,130,15,.55);z-index:3;transition:background .4s}
+  .coin.converted{background:radial-gradient(circle at 32% 30%, #B9F2E7, var(--good) 55%, #0B7C6A);color:#EFFFFB}
+  .endpoint{position:absolute;display:flex;flex-direction:column;align-items:center;gap:5px;z-index:2}
+  .endpoint .elab{font-size:12px;font-weight:800;font-family:"Nunito";color:var(--muted)}
+  .sparkle{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--amber);opacity:0;z-index:2}
+  .step-line{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;padding:5px 0;color:var(--muted)}
+  .step-line .dot{width:22px;height:22px;border-radius:50%;background:var(--soft2);display:flex;align-items:center;justify-content:center;flex:none;font-size:12px;color:transparent}
+  .step-line.doing{color:var(--ink)}
+  .step-line.doing .dot{background:var(--accent-soft)}
+  .step-line.done{color:var(--ink)}
+  .step-line.done .dot{background:var(--good);color:#fff}
+  .spin{width:12px;height:12px;border-radius:50%;border:2.5px solid var(--accent);border-top-color:transparent;animation:sp 0.7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+  .confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;opacity:0}
+  .confetti.go i{animation:fall 1.6s cubic-bezier(.22,.8,.36,1) forwards}
+  @keyframes fall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(340px) rotate(560deg)}}
+  .checkring{width:92px;height:92px;border-radius:50%;background:var(--good-soft);display:flex;align-items:center;justify-content:center}
+  .checkring svg{width:46px;height:46px}
+  .sorryring{width:92px;height:92px;border-radius:50%;background:var(--bad-soft);display:flex;align-items:center;justify-content:center}
+
+  /* assets + settings (in-app) */
+  .assetrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 4px;border-bottom:1px solid var(--line);background:transparent;border-top:none;border-left:none;border-right:none;color:var(--ink);font-family:inherit;text-align:left}
+  button.assetrow{cursor:pointer;border-radius:14px}
+  button.assetrow.sel{background:var(--accent-soft);border-bottom-color:transparent;padding-left:10px;padding-right:10px}
+  .asset-ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:"Nunito";font-weight:900;font-size:16px;color:#fff;flex:none}
+  .assetrow .aname{font-family:"Nunito";font-weight:800;font-size:16px;line-height:1.15}
+  .assetrow .ameta{font-size:13px;color:var(--muted);font-weight:600}
+  .assetrow .aval{margin-left:auto;text-align:right}
+  .assetrow .aval .av1{font-family:"Nunito";font-weight:800;font-size:15.5px}
+  .assetrow .aval .av2{font-size:12.5px;color:var(--muted);font-weight:700}
+  .setrow{display:flex;align-items:center;gap:12px;width:100%;padding:15px 6px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font-family:inherit;text-align:left;cursor:pointer;min-height:56px}
+  .setrow .sname{font-family:"Nunito";font-weight:800;font-size:16px}
+  .setrow .ssub{font-size:13px;color:var(--muted);font-weight:600}
+  .setrow .chev{margin-left:auto;color:var(--muted);font-size:20px}
+  .set-group{font-family:"Nunito";font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 4px}
+  .acct-card{background:var(--soft);border-radius:22px;padding:18px;text-align:center;margin-top:12px}
+  .recv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .recv-chip{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:16px;padding:11px 10px;cursor:pointer;font-family:inherit;text-align:left;min-height:58px}
+  .recv-chip .rs{font-family:"Nunito";font-weight:900;font-size:16px}
+  .recv-chip .rn{font-size:12px;color:var(--muted);font-weight:700}
+  .recv-chip.on{border-color:var(--accent);background:var(--accent-soft)}
+  .recv-chip.off{opacity:.75}
+  .bam-box{background:var(--bad-soft);border-radius:18px;padding:14px;margin-top:14px;display:flex;gap:11px;align-items:flex-start}
+  .bam-box p{margin:0;font-size:14px;font-weight:700;line-height:1.4}
+  .bam-box p span{color:var(--bad)}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border-radius:18px;border:2px solid var(--line);background:var(--surface);color:var(--ink);font-family:"Nunito";font-weight:900;font-size:16px;cursor:pointer;min-height:56px}
+  .demo-tag{font-size:11.5px;font-weight:800;font-family:"Nunito";background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 10px}
+
+  /* security / wallet management */
+  .group-card{background:var(--surface);border:1.5px solid var(--line);border-radius:20px;padding:6px 14px;margin-top:10px}
+  .group-card .setrow{border-bottom:1px solid var(--line)}
+  .group-card .setrow:last-child{border-bottom:none}
+  .group-label{font-family:"Nunito";font-weight:800;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:20px 0 0}
+  .wallet-card{background:var(--soft);border-radius:20px;padding:16px;margin-top:12px;display:flex;gap:12px;align-items:center}
+  .wallet-card .wc-ic{width:46px;height:46px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+  .wallet-card .wc-ic svg{width:22px;height:22px}
+  .opt-row{display:flex;align-items:center;gap:12px;width:100%;padding:15px 6px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font-family:inherit;text-align:left;cursor:pointer;min-height:60px}
+  .opt-row:last-child{border-bottom:none}
+  .opt-ic{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none;font-family:"Nunito";font-weight:900;font-size:15px}
+  .opt-row .ot{font-family:"Nunito";font-weight:800;font-size:15.5px;line-height:1.2}
+  .opt-row .os{font-size:13px;color:var(--muted);font-weight:600;line-height:1.35}
+  .opt-row .chev{margin-left:auto;color:var(--muted);font-size:20px;flex:none}
+  .status-tag{font-size:11.5px;font-weight:800;font-family:"Nunito";border-radius:999px;padding:3px 10px;background:var(--soft2);color:var(--muted);flex:none}
+  .status-tag.on{background:var(--good-soft);color:var(--good)}
+  .phrase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .phrase-word{background:var(--soft);border-radius:12px;padding:9px 10px;font-size:13.5px;font-weight:700;display:flex;gap:6px;align-items:baseline}
+  .phrase-word b{color:var(--muted);font-size:11px;font-family:"Nunito"}
+  .phrase-hidden{background:var(--soft);border-radius:16px;padding:22px 14px;text-align:center;color:var(--muted);font-weight:700;font-size:14px;margin-top:10px;letter-spacing:.18em}
+  .key-box{background:var(--soft);border-radius:14px;padding:13px 14px;font-size:13px;font-weight:700;word-break:break-all;line-height:1.5;margin-top:8px}
+  .warn-box{background:var(--bad-soft);border-radius:16px;padding:13px 14px;display:flex;gap:10px;align-items:flex-start;margin-top:12px}
+  .warn-box p{margin:0;font-size:13.5px;font-weight:700;line-height:1.45}
+  .pin-dots{display:flex;gap:14px;justify-content:center;margin:20px 0 6px}
+  .pin-dots span{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--muted);display:block}
+  .pin-dots span.filled{background:var(--accent);border-color:var(--accent)}
+  .tip-wrap{position:relative;display:inline-block;vertical-align:middle;margin-left:7px}
+  .tip-btn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);background:var(--soft);color:var(--muted);font-family:"Nunito";font-weight:900;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;flex:none}
+  .tip-btn:active{transform:scale(.94)}
+  .tip-pop{display:none;position:absolute;left:50%;transform:translateX(-58%);top:30px;width:208px;background:var(--ink);color:var(--bg);font-family:"Nunito Sans",sans-serif;font-size:13px;font-weight:600;line-height:1.45;border-radius:12px;padding:10px 12px;z-index:45;text-align:left;box-shadow:0 14px 30px -12px rgba(0,0,0,.45)}
+  .tip-pop.open{display:block}
+  .mini .phrase-grid{grid-template-columns:repeat(3,1fr);gap:6px}
+  .mini .phrase-word{font-size:12px;padding:7px 8px}
+
+  /* Prime Way's own top: the balance card leads, then the action cards */
+  .balcard{background:var(--balcard);border-radius:26px;padding:22px 20px 0;overflow:hidden;flex:none}
+  .balcard .bc-label{font-size:14.5px;font-weight:700;color:var(--ink);opacity:.85}
+  .balcard .bc-num{font-family:"Nunito";font-weight:900;font-size:46px;letter-spacing:-.02em;line-height:1.08;margin-top:4px;white-space:nowrap}
+  .mini .balcard .bc-num{font-size:30px}
+  .mini .balcard .bc-num small{font-size:16px}
+  .mini .balcard{padding:16px 16px 0}
+  .mini .actcard{min-height:96px;padding:13px 14px}
+  .mini .assets-head{font-size:20px;margin-top:18px}
+  .balcard .bc-num small{font-size:22px;font-weight:800;color:var(--muted);letter-spacing:0}
+  .chg-pill{display:inline-flex;align-items:center;font-size:12.5px;font-weight:800;font-family:"Nunito";padding:4px 11px;border-radius:999px;background:var(--soft2);color:var(--muted)}
+  .chg-pill.up{background:var(--good-soft);color:var(--good)}
+  .chg-pill.down{background:var(--bad-soft);color:var(--bad)}
+  .balcard .bc-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);margin-top:16px;padding:13px 0 15px;font-size:14px}
+  .balcard .bc-foot .acct{font-weight:700}
+  .balcard .bc-foot .addr{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:700;font-size:13.5px}
+  .actgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;flex:none}
+  .actcard{display:flex;flex-direction:column;align-items:flex-start;gap:0;border:1.5px solid var(--line);background:var(--surface);border-radius:20px;padding:15px 16px;cursor:pointer;text-align:left;color:var(--ink);font-family:inherit;min-height:104px;transition:transform .15s ease}
+  .actcard:active{transform:scale(.97)}
+  .actcard .ac-ic{width:42px;height:42px;border-radius:50%;background:var(--soft2);display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+  .actcard .ac-ic svg{width:20px;height:20px}
+  .actcard .ac-t{font-family:"Nunito";font-weight:800;font-size:16.5px;line-height:1.15}
+  .actcard .ac-s{font-size:13px;color:var(--muted);font-weight:600}
+  .featurecard{display:flex;align-items:center;gap:13px;width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:20px;padding:15px 16px;margin-top:12px;cursor:pointer;text-align:left;color:var(--ink);font-family:inherit;min-height:76px}
+  .featurecard .fc-ic{width:46px;height:46px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
+  .featurecard .fc-t{font-family:"Nunito";font-weight:800;font-size:16.5px;line-height:1.15}
+  .featurecard .fc-s{font-size:13.5px;color:var(--muted);font-weight:600}
+  .featurecard .chev{margin-left:auto;color:var(--muted);font-size:21px;flex:none}
+  .assets-head{font-family:"Nunito";font-weight:900;font-size:23px;margin:24px 0 4px;flex:none}
+  .assetrow{flex:none}
+  .spark{flex:none;margin-left:2px}
+  .assetrow .aval .chg-pill{margin-top:4px}
+  .addr-pill{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--soft2);border:none;border-radius:999px;padding:13px 16px;font-weight:700;font-size:14.5px;color:var(--ink);width:100%;cursor:pointer;font-family:inherit;margin-top:14px;min-height:48px}
+  .qr-wrap{position:relative;background:#fff;border-radius:28px;padding:20px;margin-top:6px}
+  .qr-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;padding:5px;line-height:0}
+  .share-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .share-card{border:1.5px solid var(--line);background:var(--surface);border-radius:20px;padding:16px 10px 14px;text-align:center;cursor:pointer;color:var(--ink);font-family:inherit}
+  .share-card .sc-ic{width:44px;height:44px;border-radius:50%;background:var(--soft2);display:flex;align-items:center;justify-content:center;margin:0 auto 8px}
+  .share-card .sc-ic svg{width:20px;height:20px}
+  .share-card .sc-t{font-family:"Nunito";font-weight:800;font-size:16px}
+  .share-card .sc-s{font-size:12.5px;color:var(--muted);font-weight:600}
+  .txcard{display:flex;gap:12px;border:1.5px solid var(--line);border-radius:20px;padding:14px;margin-bottom:12px;background:var(--surface);align-items:flex-start}
+  .txcard .tc-ic{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+  .txcard .tc-ic svg{width:20px;height:20px}
+  .txcard .tc-t{font-family:"Nunito";font-weight:800;font-size:15.5px;line-height:1.2}
+  .txcard .tc-s{font-size:13px;color:var(--muted);font-weight:600}
+  .txcard .tc-r{margin-left:auto;text-align:right;flex:none}
+  .txcard .tc-amt{font-family:"Nunito";font-weight:800;font-size:14.5px;white-space:nowrap}
+  .date-head{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 12px}
+  .date-head .dh-d{font-family:"Nunito";font-weight:800;font-size:16.5px}
+  .date-head .dh-w{font-family:"Nunito";font-weight:800;font-size:15px;color:var(--accent)}
+  .icon-circle-btn{width:42px;height:42px;border-radius:50%;border:none;background:var(--soft2);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+  .icon-circle-btn svg{width:19px;height:19px}
+  .sendto-big{font-family:"Nunito";font-weight:800;font-size:25px;line-height:1.3;color:var(--muted);padding:6px 0 2px}
+  .quick-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .qchip{display:inline-flex;align-items:center;gap:7px;border:none;background:var(--soft2);color:var(--ink);font-family:"Nunito";font-weight:800;font-size:14px;padding:10px 15px;border-radius:999px;cursor:pointer;min-height:42px}
+  .qchip svg{width:16px;height:16px}
+  .recent-card{display:flex;align-items:center;gap:12px;width:100%;background:var(--soft);border:2px solid transparent;border-radius:18px;padding:13px 14px;margin-bottom:10px;cursor:pointer;text-align:left;color:var(--ink);font-family:inherit;min-height:68px}
+  .recent-card.sel{border-color:var(--accent);background:var(--accent-soft)}
+  .recent-card .avatar{position:relative}
+  .net-badge{position:absolute;right:-3px;bottom:-3px;width:19px;height:19px;border-radius:50%;border:2.5px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:900;color:#fff;font-family:"Nunito"}
+  .prof-avatar{width:104px;height:104px;border-radius:50%;background:var(--soft2);display:flex;align-items:center;justify-content:center;font-family:"Nunito";font-weight:900;font-size:42px;color:var(--accent);margin:20px auto 0}
+  .prof-pill{display:inline-flex;align-items:center;gap:7px;background:var(--soft2);border-radius:999px;padding:8px 16px;font-weight:700;font-size:14.5px;margin-top:8px}
+  .set-head{display:flex;align-items:center;gap:11px;margin:24px 0 2px}
+  .set-head .sh-ic{width:38px;height:38px;border-radius:50%;background:var(--soft2);display:flex;align-items:center;justify-content:center}
+  .set-head .sh-ic svg{width:18px;height:18px}
+  .set-head .sh-t{font-family:"Nunito";font-weight:900;font-size:21px}
+  .bigbtn.grey-off{background:var(--soft2);color:var(--muted)}
+
+  /* ---------- demo layout ---------- */
+  .demo-grid{display:grid;grid-template-columns:auto 1fr;gap:52px;align-items:start}
+  @media (max-width:900px){.demo-grid{grid-template-columns:1fr;justify-items:center}}
+  .demo-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;justify-content:center}
+  .seg{display:inline-flex;background:var(--card);border:1px solid var(--cardline);border-radius:999px;padding:4px}
+  .seg button{border:none;background:transparent;font-family:"Nunito";font-weight:800;font-size:14px;padding:9px 18px;border-radius:999px;cursor:pointer;color:var(--ink2);min-height:40px}
+  .seg button.on{background:var(--ink);color:var(--page)}
+  .demo-side h3{font-size:22px;font-weight:900;margin:0 0 8px}
+  .demo-side p{color:var(--ink2);margin:0 0 14px}
+  .demo-steps{list-style:none;margin:18px 0;padding:0;display:grid;gap:10px}
+  .demo-steps li{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--cardline);border-radius:16px;padding:13px 15px;font-size:15px}
+  .demo-steps li b{font-family:"Nunito"}
+  .demo-steps .n{width:24px;height:24px;border-radius:8px;background:var(--fox);color:#fff;font-family:"Nunito";font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+  .hint{font-size:14px;color:var(--ink2);background:var(--page2);border:1px dashed var(--line);border-radius:14px;padding:12px 14px}
+
+  /* ---------- mascot ---------- */
+  .mascot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+  .mascot-card{background:var(--card);border:1px solid var(--cardline);border-radius:24px;padding:24px 18px 18px;text-align:center}
+  .mascot-card h3{margin:12px 0 4px;font-size:19px;font-weight:900}
+  .mascot-card p{margin:0;color:var(--ink2);font-size:14.5px}
+  .mascot-stage{border-radius:18px;padding:18px 0 8px}
+  .stage-light{background:#FFFFFF;border:1px solid #F0E6D8}
+  .stage-dark{background:#000}
+  .mascot-intro{display:grid;grid-template-columns:auto 1fr;gap:34px;align-items:center;margin-bottom:26px}
+  @media (max-width:760px){.mascot-intro{grid-template-columns:1fr;justify-items:center;text-align:center}}
+  .speech{background:var(--card);border:1px solid var(--cardline);border-radius:20px;padding:18px 20px;font-size:17px}
+  .speech b{font-family:"Nunito"}
+
+  /* ---------- gallery ---------- */
+  .gallery-pair{margin-bottom:44px}
+  .gallery-pair > h3{font-size:21px;font-weight:900;margin:0 0 4px}
+  .gallery-pair > p{color:var(--ink2);margin:0 0 18px;max-width:560px}
+  .pair-row{display:flex;gap:28px;flex-wrap:wrap}
+  .pair-cell{text-align:center}
+  .pair-cell .cap{font-family:"Nunito";font-weight:800;font-size:13.5px;color:var(--ink2);margin-top:12px;letter-spacing:.04em;text-transform:uppercase}
+  .pair-cell .phone{width:272px}
+  .pair-cell .phone .scr{height:560px}
+  .mini .scr-body{padding:6px 18px 12px}
+  .mini .bal{font-size:34px}
+  .mini .amount-input input{font-size:42px;width:130px}
+  .mini .receive-box .rnum{font-size:30px}
+  .mini .travel{height:150px}
+
+  /* ---------- notes / cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--cardline);border-radius:24px;padding:24px}
+  .card h3{margin:0 0 8px;font-size:19px;font-weight:900}
+  .card p{margin:0;color:var(--ink2);font-size:15.5px}
+  .card p + p{margin-top:10px}
+  .spec{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+  .spec:last-child{border-bottom:none}
+  .spec span:first-child{color:var(--ink2);font-weight:600}
+  .spec span:last-child{font-weight:800;font-family:"Nunito";text-align:right}
+  .convert-demo{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;background:var(--card);border:1px solid var(--cardline);border-radius:24px;padding:26px;margin-bottom:18px;text-align:center}
+  @media (max-width:640px){.convert-demo{grid-template-columns:1fr}}
+  .cd-coin{width:92px;height:92px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-family:"Nunito";font-weight:900;font-size:30px}
+  .cd-coin.from{background:radial-gradient(circle at 32% 30%, #FFD98A, var(--amber) 55%, #D9820F);color:#7A4A00}
+  .cd-coin.to{background:radial-gradient(circle at 32% 30%, #B9F2E7, var(--teal) 55%, #0B7C6A);color:#EFFFFB}
+  .cd-lab{font-family:"Nunito";font-weight:800;margin-top:10px}
+  .cd-sub{font-size:13.5px;color:var(--ink2)}
+  .cd-mid{font-size:26px;color:var(--fox);font-weight:900}
+  .icon-row{display:flex;gap:28px;align-items:flex-end;flex-wrap:wrap}
+  .icon-cell{text-align:center}
+  .icon-cell .cap{font-size:13px;color:var(--ink2);font-weight:700;margin-top:10px;font-family:"Nunito"}
+  footer{padding:70px 0 50px;text-align:center;color:var(--ink2);font-size:14.5px}
+  footer .fbrand{font-family:"Nunito";font-weight:900;color:var(--ink);font-size:17px}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero wrap">
+  <div class="icon-big" id="heroIcon"></div>
+  <h1>Prime <em>Way</em></h1>
+  <p class="tag">Send money to someone on a different chain. Pick a person, type an amount, tap send. It arrives.</p>
+  <p class="sub">A Prime Isles product · Free for Android · Try the tappable demo below.</p>
+  <div class="hero-cta">
+    <a class="btn btn-fox" href="Prime-Way-1.0.0.apk" download>Download Prime Way APK</a>
+    <a class="btn btn-ghost" href="#demo">Try the demo</a>
+  </div>
+  <div><span class="play-soon">Coming soon on Google Play</span></div>
+  <div class="feel-row">
+    <div class="feel-chip"><span>●</span>Simple: one idea per screen</div>
+    <div class="feel-chip"><span>●</span>Warm: giving, not operating</div>
+    <div class="feel-chip"><span>●</span>Alive: you watch it travel</div>
+    <div class="feel-chip"><span>●</span>Plain words only</div>
+  </div>
+</header>
+
+<!-- ============ 1. INTERACTIVE DEMO ============ -->
+<section id="demo" class="wrap">
+  <div class="num-badge">1</div>
+  <div class="sec-head">
+    <h2>The app, in your hands</h2>
+    <p>This phone is live. Tap through a deposit and a real send. Contacts only appear when you send.</p>
+  </div>
+  <div class="demo-grid">
+    <div>
+      <div class="demo-controls">
+        <div class="seg" role="group" aria-label="Phone theme">
+          <button id="segLight" class="on" onclick="setDemoTheme('light')">AMOLED White</button>
+          <button id="segDark" onclick="setDemoTheme('dark')">AMOLED Black</button>
+        </div>
+      </div>
+      <div class="phone" id="demoPhone">
+        <div class="scr" id="demoScr"></div>
+      </div>
+      <div class="demo-controls" style="margin-top:18px">
+        <button class="btn btn-ghost" onclick="demoRestart()">↺ Start again</button>
+        <button class="btn btn-ghost" onclick="demoError()">See what happens if it can't send</button>
+      </div>
+    </div>
+    <div class="demo-side">
+      <h3>How a send flows</h3>
+      <p>Seven small steps.</p>
+      <ol class="demo-steps">
+        <li><span class="n">1</span><div><b>Welcome and home.</b> Big USD balance card on top, Deposit and Send under it, then your Assets.</div></li>
+        <li><span class="n">+</span><div><b>Deposit.</b> Your code, your address, Share and Cross-chain.</div></li>
+        <li><span class="n">2</span><div><b>Send to.</b> Paste, Address Book or Scan, then tap a person and Continue.</div></li>
+        <li><span class="n">3</span><div><b>Pick their network.</b> Type two letters and it is there.</div></li>
+        <li><span class="n">4</span><div><b>Type the amount, in dollars.</b> Pick which asset pays. They get USDC unless you change it. Try DAI and watch it say no.</div></li>
+        <li><span class="n">+</span><div><b>Settings and Security.</b> Address Book and Security each open their own screen. Inside Security: Add wallet, Export wallet, PIN for sending.</div></li>
+        <li><span class="n">5</span><div><b>Check and confirm.</b> Who, how much, what they get. One tap.</div></li>
+        <li><span class="n">6</span><div><b>Watch it travel.</b> You see it go, and change into their money on the way.</div></li>
+        <li><span class="n">7</span><div><b>“She's got it.”</b></div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GET THE APP ============ -->
+<section id="get" class="wrap">
+  <div class="sec-head">
+    <h2>Get Prime Way</h2>
+    <p>Free for Android. Tap the button and the app downloads straight to your phone.</p>
+  </div>
+  <div class="cards">
+    <div class="card" style="text-align:center;padding:34px 26px">
+      <h3 style="margin-top:0">Download the APK</h3>
+      <p>Version 1.0.0 · Android 7.0 and up</p>
+      <a class="btn btn-fox" href="Prime-Way-1.0.0.apk" download>Download Prime-Way-1.0.0.apk</a>
+      <p style="font-size:14px;margin:16px 0 0">The file downloads as <b>Prime-Way-1.0.0.apk</b>. Open it on your phone to install. Your phone may ask you to allow installs from your browser first. That is normal.</p>
+      <p style="font-size:14px">On an older phone? <a href="Prime-Way-1.0.0-armeabi-v7a.apk" download>Get the 32-bit version</a>.</p>
+    </div>
+    <div class="card" style="text-align:center;padding:34px 26px">
+      <h3 style="margin-top:0">Google Play</h3>
+      <p>Coming soon. Prime Way will be on Google Play, and on iOS too.</p>
+      <span class="play-soon">Coming soon on Google Play</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. MASCOT ============ -->
+<section id="mascot" class="wrap">
+  <div class="num-badge">2</div>
+  <div class="sec-head">
+    <h2>Meet Pip, the fox</h2>
+    <p>Pip is quick, calm and hard to fluster. Like sending money should feel.</p>
+  </div>
+  <div class="mascot-intro">
+    <div class="mascot-stage stage-light" style="padding:26px 30px 14px" id="pipHeroLight"></div>
+    <div class="speech">
+      <p style="margin:0"><b>Why a fox?</b> Foxes know every path, even the ones nobody else can see. When there is no straight way there, Pip finds a way round: <b>resourceful, warm, and calm when something goes wrong.</b></p>
+      <p style="margin:12px 0 0">Pip shows up at the moments that matter and stays out of the way the rest of the time. Flat shapes, plain words, never childish.</p>
+    </div>
+  </div>
+  <div class="mascot-grid" id="mascotGrid"></div>
+</section>
+
+<!-- ============ 3. ALL SCREENS, BOTH THEMES ============ -->
+<section id="screens" class="wrap">
+  <div class="num-badge">3</div>
+  <div class="sec-head">
+    <h2>Every screen, in white and in black</h2>
+    <p>Light is true AMOLED white. Dark is true AMOLED black. Neither is a flip of the other: dark warms its greys and deepens the fox orange so it glows, not glares.</p>
+  </div>
+  <div id="gallery"></div>
+</section>
+
+<!-- ============ 4. CONVERTING ============ -->
+<section id="convert" class="wrap">
+  <div class="num-badge">4</div>
+  <div class="sec-head">
+    <h2>The converting moment</h2>
+    <p>Your money and their money are not the same kind. On the way, yours becomes theirs, and Prime Way shows it happen.</p>
+  </div>
+  <div class="convert-demo">
+    <div>
+      <div class="cd-coin from">B</div>
+      <div class="cd-lab">Your money</div>
+      <div class="cd-sub">$100, paid from your BNB</div>
+    </div>
+    <div class="cd-mid">→</div>
+    <div>
+      <div class="cd-coin to">$</div>
+      <div class="cd-lab">Sarah's money</div>
+      <div class="cd-sub">99.60 USDC, ready for her on Base</div>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3>What the user sees</h3>
+      <p>Mid-journey, the travelling coin ripples and changes colour. Gold becomes teal, <b>B</b> becomes <b>$</b>, and the line under it says <i>“Making it just right for Sarah…”</i></p>
+      <p>No rates, no pairs, no charts.</p>
+    </div>
+    <div class="card">
+      <h3>Why it works</h3>
+      <p>The amount screen already promised the number: <i>“Sarah will receive 99.60 USDC.”</i> Pick something else and the app checks Relay can deliver it first. If it cannot, it says so before any money moves.</p>
+      <p>If the way there needs a stop in the middle, the coin keeps travelling. The path bends; the promise does not change.</p>
+    </div>
+    <div class="card">
+      <h3>The words we never use</h3>
+      <p>Swap. Exchange rate. Pair. Route. Gas. None of them show. The app says <i>sending</i>, <i>on its way</i>, <i>making it just right</i>, and <i>she's got it</i>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. MOTION NOTES ============ -->
+<section id="motion" class="wrap">
+  <div class="num-badge">5</div>
+  <div class="sec-head">
+    <h2>Motion notes</h2>
+    <p>Every animation answers “what's happening?”, and every one has a calm reduced-motion version.</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3>The journey (sending)</h3>
+      <div class="spec"><span>The flight</span><span>4.5 s preview along the arc</span></div>
+      <div class="spec"><span>Then</span><span>Screen stays live. Steps tick with real progress until it lands</span></div>
+      <div class="spec"><span>Coin travel</span><span>Ease-in-out along a soft arc</span></div>
+      <div class="spec"><span>Path</span><span>Dotted line draws itself ahead of the coin</span></div>
+      <div class="spec"><span>Steps</span><span>Each line ticks as it completes, 120 ms stagger</span></div>
+      <div class="spec"><span>Pip does</span><span>Watches the coin, ears up, tail tip wagging slowly</span></div>
+      <div class="spec"><span>Haptics</span><span>One soft tap as the coin sets off</span></div>
+      <div class="spec"><span>Reduced motion</span><span>Coin fades between stops; steps still tick in order</span></div>
+    </div>
+    <div class="card">
+      <h3>Making it just right (converting)</h3>
+      <div class="spec"><span>When</span><span>Halfway along the journey</span></div>
+      <div class="spec"><span>Coin</span><span>600 ms ripple; colour gold → teal, letter flips</span></div>
+      <div class="spec"><span>Easing</span><span>Spring, slight overshoot (1.08×) then settle</span></div>
+      <div class="spec"><span>Sparkles</span><span>Three small stars, 300 ms, staggered</span></div>
+      <div class="spec"><span>Pip does</span><span>Thinking face for a beat, then a satisfied nod</span></div>
+      <div class="spec"><span>Caption</span><span>“Making it just right for Sarah…”</span></div>
+      <div class="spec"><span>Reduced motion</span><span>Coin cross-fades; caption stays the same</span></div>
+    </div>
+    <div class="card">
+      <h3>She's got it (arrival)</h3>
+      <div class="spec"><span>Check mark</span><span>Draws itself in 450 ms, ease-out</span></div>
+      <div class="spec"><span>Confetti</span><span>1.6 s gentle fall, fox orange / amber / teal</span></div>
+      <div class="spec"><span>Pip does</span><span>Celebrating: arms up, one happy hop (300 ms)</span></div>
+      <div class="spec"><span>Haptics</span><span>Success pattern: two light taps</span></div>
+      <div class="spec"><span>Sound</span><span>None by default. Ever.</span></div>
+      <div class="spec"><span>Reduced motion</span><span>No confetti or hop; check fades in, words carry it</span></div>
+    </div>
+    <div class="card">
+      <h3>Everywhere else</h3>
+      <div class="spec"><span>Screen changes</span><span>280 ms fade + 14 px rise, ease-out</span></div>
+      <div class="spec"><span>Buttons</span><span>Scale to 0.97 on press, spring back</span></div>
+      <div class="spec"><span>Receive number</span><span>Counts/tweens to the new estimate in 250 ms</span></div>
+      <div class="spec"><span>Search results</span><span>Appear instantly as you type, no spinner</span></div>
+      <div class="spec"><span>Error state</span><span>No shaking. Pip appears, calm, with one clear next step</span></div>
+      <div class="spec"><span>Touch targets</span><span>Everything tappable is at least 48 px</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. ICON & STORE ============ -->
+<section id="store" class="wrap">
+  <div class="num-badge">6</div>
+  <div class="sec-head">
+    <h2>App icon &amp; the store</h2>
+    <p>Pip's face on fox orange. Still Pip at 32 pixels, on white, on black, on any home screen.</p>
+  </div>
+  <div class="icon-row" id="iconRow"></div>
+  <div class="cards" style="margin-top:30px">
+    <div class="card">
+      <h3>How it holds up in store screenshots</h3>
+      <p><b>Screenshot 1: Home.</b> Big USD balance card on top, Deposit and Send under it, Assets below.</p>
+      <p><b>Screenshot 2: The amount.</b> “Sarah will receive 99.60 USDC” in huge type, under the dollars you typed.</p>
+      <p><b>Screenshot 3: The journey.</b> The coin mid-flight on its dotted path.</p>
+      <p><b>Screenshot 4: “She's got it.”</b> Pip celebrating, in AMOLED black.</p>
+    </div>
+    <div class="card">
+      <h3>Built to platform standard</h3>
+      <p>Safe areas respected on every screen. Text scales with Dynamic Type and font size settings without breaking a layout.</p>
+      <p>Contrast is 7:1 or better on both themes. Every control works with VoiceOver and TalkBack.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <div class="fbrand">Prime Way</div>
+  <p>Send money. That's it. · A Prime Isles product: quiet, precise, confident.<br/><a href="Prime-Way-1.0.0.apk" download>Download the app</a> · Coming soon on Google Play</p>
+</footer>
+
+<script>
+/* ================= MASCOT: Pip the fox ================= */
+function pip(expr, size){
+  /* Pip, a proper cartoon fox: tall pointed ears with dark tips, sharp cheek
+     fur, a long muzzle, and a big bushy tail with a cream tip curled behind.
+     Flat vector illustration, grown-up styling, no baby proportions. */
+  size = size || 120;
+  var eyes = {
+    happy:   '<ellipse cx="72" cy="98" rx="6.8" ry="8" fill="#241509"/><circle cx="74.6" cy="94.8" r="2.3" fill="#fff"/><ellipse cx="128" cy="98" rx="6.8" ry="8" fill="#241509"/><circle cx="130.6" cy="94.8" r="2.3" fill="#fff"/>',
+    thinking:'<ellipse cx="69" cy="94" rx="6.8" ry="8" fill="#241509"/><circle cx="71.6" cy="90.8" r="2.3" fill="#fff"/><ellipse cx="125" cy="94" rx="6.8" ry="8" fill="#241509"/><circle cx="127.6" cy="90.8" r="2.3" fill="#fff"/><path d="M52 80 L86 84" stroke="#241509" stroke-width="4.5" stroke-linecap="round"/>',
+    celebrating:'<path d="M58 100 Q72 86 86 100" stroke="#241509" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M114 100 Q128 86 142 100" stroke="#241509" stroke-width="6" fill="none" stroke-linecap="round"/>',
+    apologetic:'<ellipse cx="72" cy="104" rx="6.2" ry="7.4" fill="#241509"/><ellipse cx="128" cy="104" rx="6.2" ry="7.4" fill="#241509"/><path d="M54 84 L86 92" stroke="#241509" stroke-width="4.5" stroke-linecap="round"/><path d="M146 84 L114 92" stroke="#241509" stroke-width="4.5" stroke-linecap="round"/>'
+  };
+  var mouth = {
+    happy:   '<path d="M86 140 Q100 152 114 140" stroke="#241509" stroke-width="5" fill="none" stroke-linecap="round"/>',
+    thinking:'<path d="M88 144 Q100 141 112 144" stroke="#241509" stroke-width="5" fill="none" stroke-linecap="round"/>',
+    celebrating:'<path d="M84 136 Q100 158 116 136 Q100 145 84 136 Z" fill="#241509"/><ellipse cx="100" cy="147" rx="6.5" ry="3.6" fill="#E2707A"/>',
+    apologetic:'<path d="M88 148 Q94 142 100 148 Q106 154 112 148" stroke="#241509" stroke-width="4.5" fill="none" stroke-linecap="round"/>'
+  };
+  var droop = expr==='apologetic';
+  var earL = droop
+    ? '<path d="M56 66 L16 58 L40 18 Z" fill="#D95A12"/><path d="M40 18 L16 58 L34 52 Z" fill="#5C2E12"/><path d="M44 34 L32 54 L50 50 Z" fill="#FFC79A"/>'
+    : '<path d="M54 60 L30 2 L92 30 L80 58 Z" fill="#E8641C"/><path d="M30 2 L44 30 L58 24 Z" fill="#5C2E12"/><path d="M42 18 L50 44 L66 36 Z" fill="#FFC79A"/>';
+  var earR = droop
+    ? '<path d="M144 66 L184 58 L160 18 Z" fill="#D95A12"/><path d="M160 18 L184 58 L166 52 Z" fill="#5C2E12"/><path d="M156 34 L168 54 L150 50 Z" fill="#FFC79A"/>'
+    : '<path d="M146 60 L170 2 L108 30 L120 58 Z" fill="#E8641C"/><path d="M170 2 L156 30 L142 24 Z" fill="#5C2E12"/><path d="M158 18 L150 44 L134 36 Z" fill="#FFC79A"/>';
+  var extra = '';
+  if(expr==='thinking') extra = '<g><ellipse cx="172" cy="46" rx="17" ry="13" fill="#fff" stroke="#E4D5C2" stroke-width="2.5"/><circle cx="159" cy="61" r="5" fill="#fff" stroke="#E4D5C2" stroke-width="2.5"/><circle cx="151" cy="71" r="3" fill="#fff" stroke="#E4D5C2" stroke-width="2"/><circle cx="165" cy="46" r="2.4" fill="#B99B7E"/><circle cx="172" cy="46" r="2.4" fill="#B99B7E"/><circle cx="179" cy="46" r="2.4" fill="#B99B7E"/></g>';
+  if(expr==='celebrating') extra = '<g stroke-linecap="round" stroke-width="4.5"><path d="M14 58 l9 -6" stroke="#F5A524"/><path d="M186 58 l-9 -6" stroke="#E8641C"/><path d="M8 104 l11 -1" stroke="#0E9F8A"/><path d="M192 104 l-11 -1" stroke="#F5A524"/><path d="M24 30 l6 8" stroke="#0E9F8A"/><path d="M176 30 l-6 8" stroke="#F5A524"/></g>';
+  if(expr==='apologetic') extra = '<path d="M172 82 Q181 97 172 106 Q163 97 172 82 Z" fill="#7FC8E8"/>';
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 200 200" role="img" aria-label="Pip the fox, '+expr+'">'
+    /* bushy tail curled behind, right side, cream tip */
+    + '<path d="M138 168 C182 166 198 128 184 92 C196 138 182 182 128 188 C120 189 118 176 128 172 Z" fill="#C24E10"/>'
+    + '<path d="M184 92 C190 112 188 134 178 150 C186 128 184 108 176 96 Z" fill="#FFF3E2"/>'
+    + earL + earR
+    /* head, angular, with spiky cheek fur */
+    + '<path d="M48 58 L152 58 L164 90 L150 108 L158 118 L134 142 L100 172 L66 142 L42 118 L50 108 L36 90 Z" fill="#F07A35"/>'
+    + '<path d="M48 58 L152 58 L158 76 L42 76 Z" fill="#E8641C" opacity=".45"/>'
+    /* cream muzzle / chin patch */
+    + '<path d="M100 106 C124 106 142 118 141 134 C140 152 122 168 100 172 C78 168 60 152 59 134 C58 118 76 106 100 106 Z" fill="#FFF6E8"/>'
+    /* cheek shading */
+    + '<path d="M44 108 L58 130 L50 136 L38 116 Z" fill="#FFF6E8" opacity=".8"/><path d="M156 108 L142 130 L150 136 L162 116 Z" fill="#FFF6E8" opacity=".8"/>'
+    + eyes[expr]
+    /* long fox nose */
+    + '<path d="M88 122 L112 122 Q106 136 100 136 Q94 136 88 122 Z" fill="#241509"/><ellipse cx="95" cy="125" rx="3.4" ry="2" fill="#fff" opacity=".35"/>'
+    + mouth[expr]
+    + extra + '</svg>';
+}
+
+/* app icon */
+function appIcon(size, dark){
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 200 200" role="img" aria-label="Prime Way app icon">'
+    + '<defs><linearGradient id="icg'+(dark?'d':'l')+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F07A35"/><stop offset="1" stop-color="#E8641C"/></linearGradient></defs>'
+    + '<rect width="200" height="200" rx="46" fill="url(#icg'+(dark?'d':'l')+')"/>'
+    + '<path d="M58 72 L38 14 L98 42 L88 70 Z" fill="#8A3A08"/><path d="M142 72 L162 14 L102 42 L112 70 Z" fill="#8A3A08"/>'
+    + '<path d="M52 32 L62 58 L78 50 Z" fill="#FFD9AE"/><path d="M148 32 L138 58 L122 50 Z" fill="#FFD9AE"/>'
+    + '<path d="M52 66 L148 66 L158 96 L146 112 L152 120 L130 142 L100 166 L70 142 L48 120 L54 112 L42 96 Z" fill="#FFF7EA"/>'
+    + '<ellipse cx="100" cy="140" rx="29" ry="19" fill="#FDEBD2"/>'
+    + '<circle cx="80" cy="106" r="6.2" fill="#2B1A10"/><circle cx="120" cy="106" r="6.2" fill="#2B1A10"/>'
+    + '<circle cx="82" cy="103.5" r="2" fill="#fff"/><circle cx="122" cy="103.5" r="2" fill="#fff"/>'
+    + '<path d="M91 126 L109 126 Q103 138 100 138 Q97 138 91 126 Z" fill="#2B1A10"/>'
+    + '<path d="M88 146 Q100 155 112 146" stroke="#2B1A10" stroke-width="5.5" fill="none" stroke-linecap="round"/>'
+    + '</svg>';
+}
+document.getElementById('heroIcon').innerHTML = appIcon(118,false);
+document.getElementById('pipHeroLight').innerHTML = pip('happy',150);
+document.getElementById('iconRow').innerHTML =
+  '<div class="icon-cell">'+appIcon(120,false)+'<div class="cap">On light · 120 px</div></div>'
+  + '<div class="icon-cell"><div style="background:#000;border-radius:28px;padding:14px;display:inline-block">'+appIcon(120,true)+'</div><div class="cap">On AMOLED black</div></div>'
+  + '<div class="icon-cell">'+appIcon(60,false)+'<div class="cap">Home screen · 60 px</div></div>'
+  + '<div class="icon-cell">'+appIcon(32,false)+'<div class="cap">Small · 32 px, still Pip</div></div>';
+
+var mascotData = [
+  ['happy','Happy','The everyday Pip. Greets you on the home screen and sits quietly by your balance.','stage-light'],
+  ['thinking','Thinking','While Prime Way finds the way there and makes the money just right.','stage-dark'],
+  ['celebrating','Celebrating','The money landed. One happy hop, arms up, then Pip settles.','stage-light'],
+  ['apologetic','Apologetic','Something went wrong. Ears down, honest face, and always one clear thing you can do next.','stage-dark']
+];
+document.getElementById('mascotGrid').innerHTML = mascotData.map(function(m){
+  return '<div class="mascot-card"><div class="mascot-stage '+m[3]+'">'+pip(m[0],118)+'</div><h3>'+m[1]+'</h3><p>'+m[2]+'</p></div>';
+}).join('');
+
+/* ================= SHARED APP DATA ================= */
+var PEOPLE = [
+  {name:'Sarah', net:'Base', color:'#2E6BE6', coin:'ETH'},
+  {name:'Mum', net:'Polygon', color:'#8B5CF6', coin:'POL'},
+  {name:'James', net:'Arbitrum', color:'#3E7CB1', coin:'ETH'},
+  {name:'Emma', net:'Base', color:'#D9577B', coin:'ETH'}
+];
+var NETWORKS = [
+  {name:'Base', coin:'ETH', color:'#2E6BE6', rate:0.2, usd:3900},
+  {name:'Arbitrum', coin:'ETH', color:'#3E7CB1', rate:0.2, usd:3900},
+  {name:'Ethereum', coin:'ETH', color:'#627EEA', rate:0.2, usd:3900},
+  {name:'Polygon', coin:'POL', color:'#8B5CF6', rate:1592, usd:0.49},
+  {name:'Optimism', coin:'ETH', color:'#E0332B', rate:0.2, usd:3900},
+  {name:'BNB Chain', coin:'BNB', color:'#D9A40F', rate:1, usd:780},
+  {name:'Solana', coin:'SOL', color:'#14B57F', rate:3.25, usd:240},
+  {name:'Avalanche', coin:'AVAX', color:'#D64545', rate:17.33, usd:45}
+];
+var FEE = 0.004, BNB_USD = 780, BALANCE = 2.45;
+/* What you hold, shown on Home, balances in USD first */
+var ASSETS_HELD = [
+  {symbol:'BNB', chain:'BNB Chain', amount:1.92, price:780, color:'#C9930A', letter:'B', change:'+1.20%', dir:'up', spark:'2,15 12,12 22,14 32,8 42,10 50,5', sparkColor:'#0E9F8A'},
+  {symbol:'USDC', chain:'Base', amount:250, price:1, color:'#2775CA', letter:'$', change:'+0.00%', dir:'flat', spark:'2,11 12,11 22,10 32,11 42,11 50,11', sparkColor:'#A08D7D'},
+  {symbol:'ETH', chain:'Arbitrum', amount:0.042, price:3900, color:'#627EEA', letter:'Ξ', change:'−0.80%', dir:'down', spark:'2,6 12,10 22,7 32,13 42,12 50,17', sparkColor:'#D64545'}
+];
+var TOTAL_USD = ASSETS_HELD.reduce(function(s,a){ return s + a.amount*a.price; }, 0);
+/* What they can receive, USDC by default, always. Others are checked
+   against what Relay can actually deliver on that network. */
+var RECEIVE_ASSETS = [
+  {symbol:'USDC', label:'USDC', sub:'Ready to spend', price:1, letter:'$', ok:true},
+  {symbol:'USDT', label:'USDT', sub:'Also a dollar coin', price:1, letter:'₮', ok:true},
+  {symbol:'ETH', label:'ETH', sub:'The network\u2019s own money', price:3900, letter:'Ξ', ok:true},
+  {symbol:'DAI', label:'DAI', sub:'Another dollar coin', price:1, letter:'◈', ok:false}
+];
+function receiveAsset(sym){ for(var i=0;i<RECEIVE_ASSETS.length;i++) if(RECEIVE_ASSETS[i].symbol===sym) return RECEIVE_ASSETS[i]; return RECEIVE_ASSETS[0]; }
+function netByName(n){ for(var i=0;i<NETWORKS.length;i++) if(NETWORKS[i].name===n) return NETWORKS[i]; return NETWORKS[0]; }
+function initials(n){ return n.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase(); }
+function fmtCoin(v){ return v>=100 ? v.toFixed(1) : v>=1 ? v.toFixed(2) : v.toFixed(4); }
+function receiveFor(amountBNB, net){ return amountBNB * net.rate * (1 - FEE); }
+
+/* ================= LIVE QUOTE DATA (Relay, checked 2026-11-08) ================= */
+var QUOTE_API = 'https://prime-way-backend.onrender.com/quote';
+var QUOTE_WALLET = '0xA37a186AfE306C3EE01D6ABF912cC42BC568091C';
+var CHAIN_IDS = {'Base':8453,'Arbitrum':42161,'Ethereum':1,'Polygon':137,'Optimism':10,'BNB Chain':56,'Avalanche':43114};
+var ZERO_ADDR = '0x0000000000000000000000000000000000000000';
+var TOKEN_MAP = {
+  56:{'BNB':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d',decimals:18},'USDT':{address:'0x55d398326f99059ff775485246999027b3197955',decimals:18}},
+  8453:{'ETH':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',decimals:6},'USDT':{address:'0xfde4c96c8593536e31f229ea8f37b2ada2699bb2',decimals:6}},
+  42161:{'ETH':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0xaf88d065e77c8cc2239327c5edb3a432268e5831',decimals:6},'USDT':{address:'0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',decimals:6}},
+  1:{'ETH':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',decimals:6},'USDT':{address:'0xdac17f958d2ee523a2206206994597c13d831ec7',decimals:6}},
+  10:{'ETH':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0x0b2c639c533813f4aa9d7837caf62653d097ff85',decimals:6},'USDT':{address:'0x94b008aa00579c1307b0ef2c499ad98a8ce58e58',decimals:6}},
+  137:{'POL':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',decimals:6},'USDT':{address:'0xc2132d05d31c914a87c6611c10748aeb04b58e8f',decimals:6}},
+  43114:{'AVAX':{address:ZERO_ADDR,decimals:18},'USDC':{address:'0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e',decimals:6}}
+};
+function dollarsToUnits(usdStr, price, decimals){
+  var s = String(usdStr==null?'':usdStr).trim().replace(',','.');
+  if(!/^\d*(\.\d*)?$/.test(s) || s==='' || s==='.') return null;
+  var parts = s.split('.');
+  var intPart = parts[0] || '0';
+  var fracPart = parts[1] || '';
+  var digits = (intPart + fracPart).replace(/^0+(?=\d)/,'');
+  if(!digits) digits = '0';
+  try{
+    var scaled = BigInt(digits);
+    var numerator = scaled * (10n ** BigInt(decimals));
+    var denominator = BigInt(price) * (10n ** BigInt(fracPart.length));
+    if(denominator===0n) return null;
+    var units = numerator / denominator;
+    if(units===0n) return null;
+    return units.toString();
+  }catch(e){ return null; }
+}
+function quoteRouteFor(usdStr){
+  if(typeof demo==='undefined' || !demo || !demo.network) return null;
+  var pay = ASSETS_HELD[demo.payAsset];
+  if(!pay) return null;
+  var originChainId = CHAIN_IDS[pay.chain];
+  var destinationChainId = CHAIN_IDS[demo.network.name];
+  if(!originChainId || !destinationChainId) return null;
+  var originTokens = TOKEN_MAP[originChainId];
+  var destTokens = TOKEN_MAP[destinationChainId];
+  if(!originTokens || !destTokens) return null;
+  var originToken = originTokens[pay.symbol];
+  var destToken = destTokens[demo.receiveSym];
+  if(!originToken || !destToken) return null;
+  var units = dollarsToUnits(usdStr, pay.price, originToken.decimals);
+  if(!units) return null;
+  return {originChainId:originChainId, destinationChainId:destinationChainId, originCurrency:originToken.address, destinationCurrency:destToken.address, amount:units, key:originChainId+'|'+destinationChainId+'|'+originToken.address.toLowerCase()+'|'+destToken.address.toLowerCase()+'|'+units};
+}
+function fmtFee(feesUsd){
+  if(feesUsd===null || feesUsd===undefined || feesUsd==='') return null;
+  var f = parseFloat(feesUsd);
+  if(isNaN(f)) return null;
+  return '$' + (f < 1 ? f.toFixed(3) : f.toFixed(2));
+}
+
+function tipBtn(text){
+  return '<span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Tip" onclick="toggleTip(this,event)">?</button><span class="tip-pop">'+text+'</span></span>';
+}
+function toggleTip(btn, ev){
+  if(ev) ev.stopPropagation();
+  var pop = btn.parentNode.querySelector('.tip-pop');
+  var scr = btn.closest('.scr');
+  if(scr) scr.querySelectorAll('.tip-pop.open').forEach(function(x){ if(x!==pop) x.classList.remove('open'); });
+  if(pop) pop.classList.toggle('open');
+}
+var ICONS = {
+  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+  person:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="#E8641C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="#FDEEE2" stroke="none"/><path d="M8.5 15.5 15.5 8.5"/><path d="M9.5 8.5h6v6"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="#0E9F8A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.14-1.4l2.1-1.63-2-3.46-2.48 1a7 7 0 0 0-2.42-1.4L13.66 2.6h-3.32l-.4 2.51a7 7 0 0 0-2.42 1.4l-2.48-1-2 3.46L5.14 10.6a7 7 0 0 0 0 2.8l-2.1 1.63 2 3.46 2.48-1a7 7 0 0 0 2.42 1.4l.4 2.51h3.32l.4-2.51a7 7 0 0 0 2.42-1.4l2.48 1 2-3.46-2.1-1.63c.1-.45.14-.92.14-1.4Z"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.4"/><path d="M3.5 20c.8-3.4 3.2-5 6.5-5s5.7 1.6 6.5 5"/><path d="M16 4.5h4.5v15H16"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.6v5.2c0 4.6-3 8-7 10.2C8 18.8 5 15.4 5 10.8V5.6Z"/><path d="m9 11.6 2.2 2.2L15.4 9.6"/></svg>',
+  key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15.5" r="4.5"/><path d="M11.3 12.2 20 3.5"/><path d="M15.5 8l3 3M18 5.5l2 2"/></svg>',
+  copy:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  wallet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5.5V19a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1"/><circle cx="16.8" cy="14.2" r="1.3" fill="currentColor" stroke="none"/></svg>',
+  plane:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2.5 11 13"/><path d="M21.5 2.5 15 21.5l-4-8.5-8.5-4Z"/></svg>',
+  trayDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>',
+  trayUp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>',
+  swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3.5 7.5 7 11"/><path d="M3.5 7.5H17"/><path d="m17 13 3.5 3.5L17 20"/><path d="M20.5 16.5H7"/></svg>',
+  downLeft:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17"/><path d="M15.5 17H7V8.5"/></svg>',
+  scan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M21 16v3a2 2 0 0 1-2 2h-3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M4 12h16"/></svg>',
+  share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2M8.6 13.4l6.8 4.2"/></svg>',
+  sliders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M3 7h18M3 17h18"/><circle cx="9" cy="7" r="2.4"/><circle cx="15" cy="17" r="2.4"/></svg>',
+  pulse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12h4l2.5-6.5 4.5 13L16 12h5.5"/></svg>',
+  filter:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6.5h16"/><path d="M7 12h10"/><path d="M10 17.5h4"/></svg>',
+  search:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>',
+  back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>'
+};
+function statusBar(){
+  return '<div class="statusbar"><span>9:41</span><span class="sicons">'
+    + '<span class="sbar" style="width:3px;height:7px"></span><span class="sbar" style="width:3px;height:10px"></span><span class="sbar" style="width:3px;height:13px"></span>'
+    + '<span style="margin-left:4px;border:1.6px solid currentColor;border-radius:4px;padding:0 3px;font-size:9.5px;line-height:1.5">82</span></span></div><div class="notch"></div>';
+}
+function tabBar(active){
+  function t(id,icon,label){ return '<button class="tab'+(active===id?' on':'')+'">'+icon+'<span>'+label+'</span></button>'; }
+  return '<div class="tabbar">'+t('home',ICONS.home,'Home')+t('hist',ICONS.clock,'History')+t('settings',ICONS.gear,'Settings')+'</div><div class="homebar"></div>';
+}
+function mascotMsg(expr, text){
+  return '<div class="mascot-msg"><div style="flex:none">'+pip(expr,52)+'</div><p>'+text+'</p></div>';
+}
+function balanceCard(){
+  return '<div class="balcard"><div class="bc-label">Total balance</div>'
+    + '<div class="bc-num">$'+TOTAL_USD.toLocaleString(undefined,{maximumFractionDigits:2})+' <small>USD</small></div>'
+    + '<div style="margin-top:9px"><span class="chg-pill up">+$12.44 (0.65%)</span></div>'
+    + '<div class="bc-foot"><span class="acct">Account 1</span><span class="addr">0xA37a…091C '+ICONS.copy+'</span></div></div>';
+}
+function actionCards(demoMode){
+  var d = demoMode ? ' onclick="go(\'deposit\')"' : '';
+  var s = demoMode ? ' onclick="go(\'people\')"' : '';
+  return '<div class="actgrid">'
+    + '<button class="actcard"'+d+'><span class="ac-ic" style="color:var(--good)">'+ICONS.trayDown+'</span><span class="ac-t">Deposit</span><span class="ac-s">Into Prime Way</span></button>'
+    + '<button class="actcard"'+s+'><span class="ac-ic" style="color:var(--accent)">'+ICONS.plane+'</span><span class="ac-t">Send</span><span class="ac-s">To anyone, on any network</span></button>'
+    + '</div>';
+}
+function sparkSVG(pts, color){
+  return '<svg class="spark" width="52" height="22" viewBox="0 0 52 22" fill="none" aria-hidden="true"><polyline points="'+pts+'" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function qrSVG(){
+  /* Prime Way's own deposit code: deep warm-ink modules on white,
+     square finder marks, Pip's icon in the middle. */
+  var seed = 42, cells = '';
+  function rnd(){ seed = (seed*1103515245 + 12345) % 2147483648; return seed/2147483648; }
+  function finder(cx, cy){
+    return '<rect x="'+cx+'" y="'+cy+'" width="49" height="49" rx="10" fill="none" stroke="#2B1A10" stroke-width="7"/><rect x="'+(cx+14)+'" y="'+(cy+14)+'" width="21" height="21" rx="5" fill="#2B1A10"/>';
+  }
+  for(var y=0;y<21;y++) for(var x=0;x<21;x++){
+    var inF = (x<8&&y<8)||(x>12&&y<8)||(x<8&&y>12);
+    if(inF) continue;
+    if(x>8&&x<12&&y>8&&y<12) continue;
+    if(rnd()>0.52) cells += '<rect x="'+(x*10)+'" y="'+(y*10)+'" width="8" height="8" rx="2" fill="#2B1A10"/>';
+  }
+  return '<div class="qr-wrap"><svg viewBox="0 0 210 210" width="100%" role="img" aria-label="Your deposit code">'+cells+finder(2,2)+finder(159,2)+finder(2,159)+'</svg><div class="qr-center">'+appIcon(46,false)+'</div></div>';
+}
+</script>
+<script>
+/* ================= STATIC SCREENS (gallery) ================= */
+function scrWelcome(){
+  return '<div class="scr-body"><div class="center-col">'
+    + pip('happy',128)
+    + '<div class="app-h" style="font-size:29px;margin-top:16px">Sending money<br/>should feel like this.</div>'
+    + '<p style="color:var(--muted);font-weight:600;margin:12px 8px 0">Pick a person. Type an amount.</p></div>'
+    + '<button class="bigbtn">Start sending</button>'
+    + '</div>'
+    + '<div class="homebar"></div>';
+}
+function assetRows(){
+  return ASSETS_HELD.map(function(a){
+    return '<div class="assetrow"><div class="asset-ic" style="background:'+a.color+'">'+a.letter+'</div><div><div class="aname">'+a.symbol+'</div><div class="ameta">'+a.amount+' '+a.symbol+'</div></div>'+sparkSVG(a.spark, a.sparkColor)+'<div class="aval"><div class="av1">$'+(a.amount*a.price).toLocaleString(undefined,{maximumFractionDigits:2})+'</div><span class="chg-pill '+a.dir+'">'+a.change+'</span></div></div>';
+  }).join('');
+}
+function scrHome(){
+  return '<div class="scr-body">'
+    + balanceCard()
+    + actionCards(false)
+    + '<div class="assets-head">Assets</div>' + assetRows()
+    + '</div>' + tabBar('home');
+}
+function scrDeposit(){
+  return '<div class="scr-body">'
+    + '<div class="app-h" style="font-size:26px;margin-bottom:8px">Deposit'+tipBtn('Send BNB, USDC or ETH to this address. It can come from any network.')+'</div>'
+    + qrSVG()
+    + '<button class="addr-pill">'+ICONS.copy+' 0xA37a186AfE…BC568091C</button>'
+    + '<div class="share-grid">'
+    + '<div class="share-card"><div class="sc-ic" style="color:var(--good)">'+ICONS.share+'</div><div class="sc-t">Share</div><div class="sc-s">Send your address</div></div>'
+    + '<div class="share-card"><div class="sc-ic" style="color:var(--accent)">'+ICONS.swap+'</div><div class="sc-t">Cross-chain</div><div class="sc-s">From another network</div></div>'
+    + '</div>'
+    + '</div>' + tabBar('home');
+}
+function settingsRowsStatic(){
+  return '<div class="set-head"><span class="sh-ic">'+ICONS.sliders+'</span><span class="sh-t">Preferences</span></div>'
+    + '<div class="setrow"><span style="flex:1"><span class="sname">General</span></span><span class="chev">›</span></div>'
+    + '<div class="setrow"><span style="flex:1"><span class="sname">Address Book</span></span><span class="chev">›</span></div>'
+    + '<div class="setrow"><span style="flex:1"><span class="sname">Language</span></span><span style="color:var(--muted);font-weight:700;font-size:14.5px">English</span><span class="chev">›</span></div>'
+    + '<div class="group-label" style="margin-top:20px">Wallet &amp; safety</div>'
+    + '<div class="group-card" style="margin-top:6px"><div class="setrow"><span class="opt-ic" style="background:var(--good-soft);color:var(--good)">'+ICONS.shield+'</span><span style="flex:1"><span class="sname">Security</span><br/><span class="ssub">Add wallet, export &amp; send PIN</span></span><span class="chev">›</span></div></div>';
+}
+function scrSettings(){
+  return '<div class="scr-body"><div class="app-h" style="font-size:27px;margin-top:8px;padding-bottom:10px;border-bottom:1px solid var(--line)">Profile</div>'
+    + '<div class="prof-avatar">J</div>'
+    + '<div class="app-h" style="font-size:24px;text-align:center;margin-top:12px">Account 1</div>'
+    + '<div style="text-align:center"><span class="prof-pill">'+ICONS.copy+' 0xA37a…091C</span></div>'
+    + '<div style="text-align:center"><span class="prof-pill"><span style="color:var(--accent)">'+ICONS.pulse+'</span> Mainnet</span></div>'
+    + settingsRowsStatic()
+    + '</div>' + tabBar('settings');
+}
+var SAMPLE_PHRASE = ['orbit','meadow','harbor','velvet','cactus','lantern','willow','puzzle','crystal','sunset','timber','breeze'];
+function phraseGridHTML(){
+  return '<div class="phrase-grid">' + SAMPLE_PHRASE.map(function(w,i){ return '<span class="phrase-word"><b>'+(i+1)+'</b>'+w+'</span>'; }).join('') + '</div>';
+}
+function scrSecurity(){
+  return '<div class="scr-body"><div class="backbtn">'+ICONS.back+' Settings</div>'
+    + '<div class="app-h" style="font-size:25px">Security</div>'
+    + '<div class="wallet-card"><span class="wc-ic">'+ICONS.wallet+'</span><span style="flex:1"><span style="font-family:Nunito;font-weight:800;font-size:16px">Account 1</span><br/><span style="font-size:13px;color:var(--muted);font-weight:600">0xA37a…091C · Saved on this device</span></span><span class="status-tag on">Active</span></div>'
+    + '<div class="group-label">Wallet</div>'
+    + '<div class="group-card">'
+    + '<div class="opt-row"><span class="opt-ic" style="background:var(--accent-soft);color:var(--accent)">+</span><span style="flex:1"><span class="ot">Add wallet</span><br/><span class="os">Create or import another wallet</span></span><span class="chev">›</span></div>'
+    + '<div class="opt-row"><span class="opt-ic" style="background:var(--soft2)">'+ICONS.key+'</span><span style="flex:1"><span class="ot">Export wallet</span><br/><span class="os">See and copy your phrase or key</span></span><span class="chev">›</span></div>'
+    + '</div>'
+    + '<div class="group-label">Sending</div>'
+    + '<div class="group-card">'
+    + '<div class="opt-row"><span class="opt-ic" style="background:var(--good-soft);color:var(--good)">'+ICONS.shield+'</span><span style="flex:1"><span class="ot">PIN for sending</span><br/><span class="os">Ask for a PIN before money leaves</span></span><span class="status-tag">Not set</span><span class="chev">›</span></div>'
+    + '</div>'
+    + '</div><div class="homebar"></div>';
+}
+function scrAddWallet(){
+  return '<div class="scr-body"><div class="backbtn">'+ICONS.back+' Security</div>'
+    + '<div class="app-h" style="font-size:25px">Add wallet</div>'
+    + '<div class="group-label">With Privy</div>'
+    + '<div class="group-card">'
+    + '<div class="opt-row"><span class="opt-ic" style="background:var(--accent);color:#fff;font-size:17px">G</span><span style="flex:1"><span class="ot">Create wallet via Privy</span><br/><span class="os">New wallet, made with your Google account</span></span><span class="chev">›</span></div>'
+    + '<div class="opt-row"><span class="opt-ic" style="background:var(--accent-soft);color:var(--accent);font-size:17px">G</span><span style="flex:1"><span class="ot">Log in via Privy</span><br/><span class="os">Sign back in</span></span><span class="chev">›</span></div>'
+    + '</div>'
+    + '<div class="group-label">Import</div>'
+    + '<div class="group-card">'
+    + '<div class="opt-row"><span class="opt-ic" style="background:var(--soft2)">'+ICONS.key+'</span><span style="flex:1"><span class="ot">Import private key</span><br/><span class="os">Paste the key for one address</span></span><span class="chev">›</span></div>'
+    + '<div class="opt-row"><span class="opt-ic" style="background:var(--soft2);font-size:13px">12</span><span style="flex:1"><span class="ot">Import seed phrase</span><br/><span class="os">12 or 24 words, in order</span></span><span class="chev">›</span></div>'
+    + '</div>'
+    + '</div><div class="homebar"></div>';
+}
+function scrExportWallet(){
+  return '<div class="scr-body"><div class="backbtn">'+ICONS.back+' Security</div>'
+    + '<div class="app-h" style="font-size:25px">Export wallet'+tipBtn('Anyone who has your phrase or key has your wallet. Copy it somewhere safe.')+'</div>'
+    + '<div class="warn-box"><span style="flex:none;color:var(--bad)">'+ICONS.shield+'</span><p>Never share your phrase or key with anyone. Prime Way will never ask for it.</p></div>'
+    + '<div class="group-label">Recovery phrase</div>'
+    + phraseGridHTML()
+    + '<button class="bigbtn secondary" style="margin-top:12px">Copy phrase</button>'
+    + '<div class="group-label">Private key</div>'
+    + '<div class="key-box">0x8f3a…c291 · tap to reveal in the app</div>'
+    + '<button class="bigbtn secondary" style="margin-top:10px">Copy private key</button>'
+    + '</div><div class="homebar"></div>';
+}
+function scrSendPin(){
+  return '<div class="scr-body"><div class="backbtn">'+ICONS.back+' Security</div>'
+    + '<div class="app-h" style="font-size:25px;text-align:center">PIN for sending</div>'
+    + '<p style="color:var(--muted);font-weight:600;text-align:center;margin:8px 6px 0;font-size:14.5px">A short PIN, asked for before any send.</p>'
+    + '<div class="pin-dots"><span></span><span></span><span></span><span></span></div>'
+    + '<p style="text-align:center;font-size:13px;color:var(--muted);font-weight:700">Choose 4 numbers you\u2019ll remember</p>'
+    + '<button class="bigbtn" style="margin-top:auto">Set PIN</button>'
+    + '<button class="bigbtn secondary" style="margin-top:10px">Not now</button>'
+    + '</div><div class="homebar"></div>';
+}
+function scrAddressBook(){
+  var people = PEOPLE.map(function(p){
+    return '<div class="person"><div class="avatar" style="background:'+p.color+'">'+initials(p.name)+'</div><div><div class="pname">'+p.name+'</div><div class="pmeta">On '+p.net+' · 0x…'+Math.abs(p.name.length*137%90+10)+'</div></div><span class="chev">›</span></div>';
+  }).join('');
+  return '<div class="scr-body"><button class="backbtn">'+ICONS.back+' Settings</button>'
+    + '<div class="app-h" style="font-size:25px">Address Book</div>'
+    + ''
+    + people
+    + '<button class="bigbtn secondary" style="margin-top:12px">+ &nbsp;Add someone</button>'
+    + '</div><div class="homebar"></div>';
+}
+/* scrWalletSetup removed, wallet creation/import now lives under Security → Add wallet */
+function recentCards(selIdx){
+  return PEOPLE.map(function(p,i){
+    var net = netByName(p.net);
+    return '<div class="recent-card'+(selIdx===i?' sel':'')+'"><span class="avatar" style="background:'+p.color+'">'+initials(p.name)+'<span class="net-badge" style="background:'+net.color+'">'+net.name[0]+'</span></span><span><span class="pname" style="font-family:Nunito;font-weight:800;font-size:16.5px">'+p.name+'</span><br/><span style="font-size:13px;color:var(--muted);font-weight:600">On '+p.net+'</span></span></div>';
+  }).join('');
+}
+function scrPeople(){
+  return '<div class="scr-body">'
+    + '<div class="app-h" style="font-size:31px">Send to</div>'
+    + '<div class="sendto-big">Type a name, or paste<br/>an address</div>'
+    + '<div class="quick-chips"><span class="qchip">'+ICONS.copy+' Paste</span><span class="qchip">'+ICONS.book+' Address Book</span><span class="qchip">'+ICONS.scan+' Scan QR code</span></div>'
+    + '<div class="sec-label" style="font-size:19px;margin:22px 0 10px">Recent</div>'
+    + recentCards(0)
+    + '<button class="bigbtn grey-off" style="margin-top:auto">Continue</button>'
+    + '</div><div class="homebar"></div>';
+}
+function scrNetwork(){
+  var n = NETWORKS[0];
+  var row = '<div class="netrow"><div class="netdot" style="background:'+n.color+'">'+n.coin[0]+'</div><div><div class="pname" style="font-family:Nunito;font-weight:800;font-size:16.5px">'+n.name+'</div><div class="pmeta" style="font-size:13px;color:var(--muted);font-weight:600">Arrives as USDC</div></div><span class="chev" style="margin-left:auto;color:var(--muted);font-size:20px">›</span></div>';
+  return '<div class="scr-body"><button class="backbtn">'+ICONS.back+' Back</button>'
+    + '<div class="app-h" style="font-size:25px">Where does Sarah<br/>keep her money?</div>'
+    + ''
+    + '<div class="searchbox">'+ICONS.search+'<input value="ba" readonly aria-label="Search networks"/></div>'
+    + row
+    + '<p style="font-size:13px;color:var(--muted);font-weight:600;text-align:center;margin-top:10px">1 match for “ba”</p>'
+    + '</div><div class="homebar"></div>';
+}
+function scrAddPerson(){
+  var n = NETWORKS[0];
+  return '<div class="scr-body"><button class="backbtn" style="min-height:38px;padding:4px 0">'+ICONS.back+' Back</button>'
+    + '<div class="app-h" style="font-size:23px">Someone new</div>'
+    + ''
+    + '<div class="fld" style="margin-top:10px"><label style="margin-bottom:5px">Their name</label><div class="fin"><input value="Daniel" readonly style="height:44px"/></div></div>'
+    + '<div class="fld" style="margin-top:10px"><label style="margin-bottom:5px">Their address</label><div class="fin"><input value="0x7f3a…9c21" readonly style="height:44px"/><span class="paste">Paste</span></div></div>'
+    + '<div class="fld" style="margin-top:10px"><label style="margin-bottom:5px">Where they keep their money</label>'
+    + '<div class="searchbox" style="margin:0 0 6px">'+ICONS.search+'<input value="ba" readonly aria-label="Search their network" style="height:44px"/></div>'
+    + '<div class="netrow" style="background:var(--accent-soft);min-height:52px;padding:8px 10px"><div class="netdot" style="background:'+n.color+';width:38px;height:38px">'+n.coin[0]+'</div><div><div style="font-family:Nunito;font-weight:800;font-size:16px">'+n.name+'</div><div style="font-size:12.5px;color:var(--muted);font-weight:600">Arrives as '+n.coin+'</div></div><span style="margin-left:auto;color:var(--accent);font-weight:900;font-size:14px">✓ Chosen</span></div></div>'
+    + '<button class="bigbtn" style="margin-top:16px">Save Daniel</button>'
+    + '</div><div class="homebar"></div>';
+}
+function scrAmount(){
+  return '<div class="scr-body"><button class="backbtn">'+ICONS.back+' Back</button>'
+    + '<div class="app-h" style="font-size:24px;text-align:center">How much for Sarah?'+tipBtn('Type dollars. Prime Way works out how much of your asset that is.')+'</div>'
+    + '<div class="amount-wrap"><div class="amount-input"><span class="unit" style="font-size:34px">$</span><input value="100" readonly aria-label="Amount in dollars"/></div></div>'
+    + '<div class="sec-label" style="margin:16px 0 6px">Pay with</div>'
+    + '<div class="assetrow sel" style="border-radius:14px;padding-left:10px;padding-right:10px"><div class="asset-ic" style="background:#C9930A;width:38px;height:38px;font-size:14px">B</div><div><div class="aname" style="font-size:15px">BNB</div><div class="ameta">You have $1,498 worth</div></div><div class="aval"><div class="av1">0.128 BNB</div><div class="av2">for this send</div></div></div>'
+    + '<div class="sec-label" style="margin:14px 0 6px">Sarah receives</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chip on">USDC ✓</span><span class="chip">USDT</span><span class="chip">ETH</span><span class="chip">DAI</span></div>'
+    + '<div class="receive-box" style="margin-top:14px"><div class="rlab">Sarah will receive</div><div class="rnum">99.60 USDC</div><div class="rusd">On Base</div></div>'
+    + '<button class="bigbtn" style="margin-top:14px">Keep going</button>'
+    + '</div><div class="homebar"></div>';
+}
+function scrConfirm(){
+  return '<div class="scr-body"><button class="backbtn">'+ICONS.back+' Back</button>'
+    + '<div class="app-h" style="font-size:25px">Just to check</div>'
+    + '<div class="confirm-card">'
+    + '<div class="crow"><span>Sending to</span><span>Sarah</span></div>'
+    + '<div class="crow"><span>You send</span><span>$100 · 0.128 BNB</span></div>'
+    + '<div class="crow"><span>Sarah receives</span><span style="color:var(--accent)">99.60 USDC</span></div>'
+    + '<div class="crow"><span>Where</span><span>Base</span></div>'
+    + '<div class="crow"><span>Arrives</span><span>In a few minutes</span></div></div>'
+    + mascotMsg('thinking','I\'ve found the way there. All set when you are.')
+    + '<button class="bigbtn" style="margin-top:auto">Send to Sarah</button>'
+    + '</div><div class="homebar"></div>';
+}
+function scrSending(){
+  return '<div class="scr-body"><div class="app-h" style="font-size:25px;text-align:center;margin-top:8px">Sending to Sarah</div>'
+    + '<div class="travel"><svg class="route" viewBox="0 0 276 150" preserveAspectRatio="none"><path class="route-path" d="M28 118 C 90 30, 186 30, 248 96"/><path class="route-done" d="M28 118 C 90 30, 186 30, 248 96" pathLength="100" stroke-dasharray="100" stroke-dashoffset="42"/></svg>'
+    + '<div class="endpoint" style="left:28px;top:118px;transform:translate(-50%,-8px)"><div class="avatar" style="background:var(--accent);width:40px;height:40px;font-size:14px">You</div><div class="elab">You</div></div>'
+    + '<div class="endpoint" style="left:248px;top:96px;transform:translate(-50%,-8px)"><div class="avatar" style="background:#2E6BE6;width:40px;height:40px">S</div><div class="elab">Sarah</div></div>'
+    + '<div class="coin converted" style="left:58%;top:26%">$</div></div>'
+    + '<div class="step-line done"><span class="dot">✓</span>On its way</div>'
+    + '<div class="step-line doing"><span class="dot"><span class="spin"></span></span>Making it just right for Sarah…</div>'
+    + '<div class="step-line"><span class="dot"></span>Almost with her</div>'
+    + '<div style="text-align:center;margin-top:auto">'+pip('thinking',74)+'<p style="color:var(--muted);font-weight:600;font-size:14px;margin:4px 0 0">Takes a few minutes.</p></div>'
+    + '</div><div class="homebar"></div>';
+}
+function scrArrived(){
+  var conf = ['#E8641C','#F5A524','#0E9F8A','#2E6BE6','#D9577B','#F07A35'].map(function(c,i){
+    return '<i style="left:'+(8+i*15)+'%;background:'+c+';transform:rotate('+(i*37)+'deg)"></i>';
+  }).join('');
+  return '<div class="scr-body"><div class="confetti go">'+conf+'</div><div class="center-col">'
+    + '<div class="checkring pop">'+ICONS.check+'</div>'
+    + '<div class="app-h" style="font-size:29px;margin-top:18px">She\'s got it</div>'
+    + '<p style="color:var(--muted);font-weight:600;margin:10px 0 0">Sarah received <b style="color:var(--ink)">99.60 USDC</b><br/>just now, on Base.</p>'
+    + '<div style="margin-top:18px">'+pip('celebrating',104)+'</div></div>'
+    + '<button class="bigbtn">Done</button>'
+    + '<button class="bigbtn secondary" style="margin-top:10px">Send more</button>'
+    + '</div><div class="homebar"></div>';
+}
+function txCards(){
+  var txs = [
+    {ic:ICONS.plane, bg:'#5B84AE', t:'Sent', s:'To: Sarah · Base', amt:'−$100.00', pill:'ok', pl:'Confirmed'},
+    {ic:ICONS.trayDown, bg:'#7FA36B', t:'Deposited', s:'USDC · from BNB Chain', amt:'+$250.00', pill:'ok', pl:'Confirmed'},
+    {ic:ICONS.plane, bg:'#5B84AE', t:'Sent', s:'To: James · Arbitrum', amt:'−$50.00', pill:'wait', pl:'Pending'},
+    {ic:ICONS.downLeft, bg:'#7FA36B', t:'Received', s:'From: Emma', amt:'+$75.00', pill:'ok', pl:'Confirmed'},
+    {ic:ICONS.swap, bg:'#9A86C8', t:'Sent & made right', s:'To: Mum · Polygon', amt:'−$200.00', pill:'ok', pl:'Confirmed'}
+  ];
+  return txs.map(function(x){
+    return '<div class="txcard"><span class="tc-ic" style="background:'+x.bg+'">'+x.ic+'</span><span><span class="tc-t">'+x.t+'</span><br/><span class="tc-s">'+x.s+'</span></span><span class="tc-r"><span class="tc-amt">'+x.amt+'</span><br/><span class="pill '+x.pill+'" style="margin-top:5px;display:inline-block">'+x.pl+'</span></span></div>';
+  }).join('');
+}
+function scrHistory(){
+  return '<div class="scr-body"><div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-bottom:10px;border-bottom:1px solid var(--line)"><div class="app-h" style="font-size:27px;flex:1">Activity</div><span class="icon-circle-btn">'+ICONS.search+'</span><span class="icon-circle-btn">'+ICONS.filter+'</span></div>'
+    + '<div class="chiprow" style="margin-top:14px"><span class="chip on">All</span><span class="chip">Pending</span><span class="chip">Sent</span><span class="chip">Deposits</span></div>'
+    + '<div class="date-head"><span class="dh-d">November 7, 2026</span><span class="dh-w">Saturday</span></div>'
+    + txCards()
+    + '</div>' + tabBar('hist');
+}
+function scrError(){
+  return '<div class="scr-body"><div class="center-col">'
+    + '<div class="sorryring">'+pip('apologetic',72)+'</div>'
+    + '<div class="app-h" style="font-size:26px;margin-top:18px">That one couldn\'t go through</div>'
+    + '<p style="color:var(--muted);font-weight:600;margin:12px 6px 0">The way to Sarah is busy right now. <b style="color:var(--ink)">Your money hasn\'t moved.</b> It is still all yours.</p></div>'
+    + '<button class="bigbtn">Try again</button>'
+    + '<button class="bigbtn secondary" style="margin-top:10px">Back to home</button>'
+    + '</div><div class="homebar"></div>';
+}
+
+var GALLERY = [
+  ['Welcome','Pip says hello. One button: start.', scrWelcome],
+  ['Home','Big USD balance card first, then Deposit and Send, then Assets.', scrHome],
+  ['Deposit','Your code, your address, Share and Cross-chain.', scrDeposit],
+  ['Profile & settings','Avatar, account, address. Address Book and Security are rows below.', scrSettings],
+  ['Address Book','Your contacts live here, inside Settings.', scrAddressBook],
+  ['Security','Your wallet, then Add wallet, Export wallet and PIN for sending.', scrSecurity],
+  ['Add wallet','Create or log in with Privy, or import a key or seed phrase.', scrAddWallet],
+  ['Export wallet','Your recovery phrase and private key, behind a warning.', scrExportWallet],
+  ['PIN for sending','A 4-number PIN, asked for before any send.', scrSendPin],
+  ['Send to','Paste, Address Book or Scan, then your recent people.', scrPeople],
+  ['Add a person','Name, address, and where they keep their money.', scrAddPerson],
+  ['Pick the network','Type two letters. The answer is on screen.', scrNetwork],
+  ['Amount, in dollars','Type dollars, pick the asset that pays. USDC by default.', scrAmount],
+  ['Confirm','Who, how much, what they get, when. One tap.', scrConfirm],
+  ['Sending','You watch it travel, and change into their money on the way.', scrSending],
+  ['Arrived','“She\'s got it.” Confetti and a hop from Pip.', scrArrived],
+  ['Activity','Each move in its own card, with its status.', scrHistory],
+  ['When it can\'t send','Pip is sorry, the money is safe, one clear next step.', scrError]
+];
+document.getElementById('gallery').innerHTML = GALLERY.map(function(g){
+  return '<div class="gallery-pair"><h3>'+g[0]+'</h3><p>'+g[1]+'</p><div class="pair-row">'
+    + '<div class="pair-cell"><div class="phone mini"><div class="scr">'+statusBar()+g[2]()+'</div></div><div class="cap">AMOLED White</div></div>'
+    + '<div class="pair-cell"><div class="phone mini dark"><div class="scr">'+statusBar()+g[2]()+'</div></div><div class="cap">AMOLED Black</div></div>'
+    + '</div></div>';
+}).join('');
+
+/* ================= INTERACTIVE DEMO ================= */
+var demo = { screen:'welcome', person:null, network:null, amount:'100', theme:'light', timer:null, newNet:0, payAsset:0, receiveSym:'USDC', selPerson:null, exportRevealed:false, keyRevealed:false, pinSet:false, pinValue:'', liveQuote:null };
+var liveTimer = null, liveSeq = 0;
+var SAMPLE_KEY = '0x8f3ac2917bd04e6fa51290cd47b8e3a1f6c0d59284be71a03dcf65e927b4a1c9';
+var demoScr = document.getElementById('demoScr');
+var demoPhone = document.getElementById('demoPhone');
+
+function setDemoTheme(t){
+  demo.theme = t;
+  demoPhone.classList.toggle('dark', t==='dark');
+  document.getElementById('segLight').classList.toggle('on', t==='light');
+  document.getElementById('segDark').classList.toggle('on', t==='dark');
+}
+function show(html){ demoScr.innerHTML = statusBar() + html; }
+function demoRestart(){ clearTimeout(demo.timer); if(liveTimer){ clearTimeout(liveTimer); liveTimer=null; } liveSeq++; demo.liveQuote=null; demo.screen='welcome'; demo.person=null; demo.network=null; demo.amount='100'; demo.payAsset=0; demo.receiveSym='USDC'; demo.selPerson=null; demo.exportRevealed=false; demo.keyRevealed=false; demo.pinSet=false; demo.pinValue=''; renderDemo(); }
+function demoError(){ clearTimeout(demo.timer); demo.screen='error'; renderDemo(); }
+
+function renderDemo(){
+  var s = demo.screen;
+  if(s==='welcome') return show(dWelcome());
+  if(s==='home') return show(dHome());
+  if(s==='deposit') return show(dDeposit());
+  if(s==='people') return show(dPeople());
+  if(s==='add') return show(dAddPerson());
+  if(s==='network') return show(dNetwork());
+  if(s==='amount') return show(dAmount());
+  if(s==='confirm') return show(dConfirm());
+  if(s==='sending') return show(dSending());
+  if(s==='arrived') return show(dArrived());
+  if(s==='history') return show(dHistory());
+  if(s==='settings') return show(dSettings());
+  if(s==='addressbook') return show(dAddressBook());
+  if(s==='security') return show(dSecurity());
+  if(s==='addwallet') return show(dAddWallet());
+  if(s==='exportwallet') return show(dExportWallet());
+  if(s==='importkey') return show(dImportKey());
+  if(s==='importseed') return show(dImportSeed());
+  if(s==='privycreate') return show(dPrivy('create'));
+  if(s==='privylogin') return show(dPrivy('login'));
+  if(s==='pin') return show(dPin());
+  if(s==='error') return show(dError());
+}
+function go(s){ demo.screen = s; renderDemo(); }
+
+function dWelcome(){
+  return '<div class="scr-body fadein"><div class="center-col">'
+    + pip('happy',132)
+    + '<div class="app-h" style="font-size:30px;margin-top:16px">Sending money<br/>should feel like this.</div>'
+    + '<p style="color:var(--muted);font-weight:600;margin:12px 8px 0">Pick a person. Type an amount.</p></div>'
+    + '<button class="bigbtn" onclick="go(\'home\')">Start sending</button>'
+    + '</div>'
+    + '<div class="homebar"></div>';
+}
+function dTabs(active){
+  return '<div class="tabbar">'
+    + '<button class="tab'+(active==='home'?' on':'')+'" onclick="go(\'home\')">'+ICONS.home+'<span>Home</span></button>'
+    + '<button class="tab'+(active==='hist'?' on':'')+'" onclick="go(\'history\')">'+ICONS.clock+'<span>History</span></button>'
+    + '<button class="tab'+(active==='settings'?' on':'')+'" onclick="go(\'settings\')">'+ICONS.gear+'<span>Settings</span></button>'
+    + '</div><div class="homebar"></div>';
+}
+function dHome(){
+  return '<div class="scr-body fadein">'
+    + balanceCard()
+    + actionCards(true)
+    + '<div class="assets-head">Assets</div>' + assetRows()
+    + '</div>' + dTabs('home');
+}
+function dDeposit(){
+  return '<div class="scr-body fadein">'
+    + '<div class="app-h" style="font-size:26px;margin-bottom:8px">Deposit'+tipBtn('Send BNB, USDC or ETH to this address. It can come from any network.')+'</div>'
+    + qrSVG()
+    + '<button class="addr-pill" onclick="copyAddr(this)">'+ICONS.copy+' <span>0xA37a186AfE…BC568091C</span></button>'
+    + '<div class="share-grid">'
+    + '<button class="share-card" onclick="shareAddr(this)"><span class="sc-ic" style="color:var(--good);display:flex">'+ICONS.share+'</span><span class="sc-t">Share</span><br/><span class="sc-s">Send your address</span></button>'
+    + '<button class="share-card" onclick="crossNote(this)"><span class="sc-ic" style="color:var(--accent);display:flex">'+ICONS.swap+'</span><span class="sc-t">Cross-chain</span><br/><span class="sc-s">From another network</span></button>'
+    + '</div>'
+    + '<button class="bigbtn secondary" style="margin-top:14px" onclick="go(\'home\')">Back to home</button>'
+    + '</div><div class="homebar"></div>';
+}
+function copyAddr(btn){ var s = btn.querySelector('span'); if(s) s.textContent = 'Copied'; }
+function shareAddr(btn){ var s = btn.querySelector('.sc-s'); if(s) s.textContent = 'Ready to send to anyone'; }
+function crossNote(btn){ var s = btn.querySelector('.sc-s'); if(s) s.textContent = 'From any network, via Relay'; }
+function dSettings(){
+  return '<div class="scr-body fadein"><div class="app-h" style="font-size:27px;margin-top:8px;padding-bottom:10px;border-bottom:1px solid var(--line)">Profile</div>'
+    + '<div class="prof-avatar">J</div>'
+    + '<div class="app-h" style="font-size:24px;text-align:center;margin-top:12px">Account 1</div>'
+    + '<div style="text-align:center"><span class="prof-pill">'+ICONS.copy+' 0xA37a…091C</span></div>'
+    + '<div style="text-align:center"><span class="prof-pill"><span style="color:var(--accent)">'+ICONS.pulse+'</span> Mainnet</span></div>'
+    + '<div class="set-head"><span class="sh-ic">'+ICONS.sliders+'</span><span class="sh-t">Preferences</span></div>'
+    + '<div class="setrow"><span style="flex:1"><span class="sname">General</span></span><span class="chev">›</span></div>'
+    + '<button class="setrow" onclick="go(\'addressbook\')"><span style="flex:1"><span class="sname">Address Book</span></span><span class="chev">›</span></button>'
+    + '<div class="setrow"><span style="flex:1"><span class="sname">Language</span></span><span style="color:var(--muted);font-weight:700;font-size:14.5px">English</span><span class="chev">›</span></div>'
+    + '<div class="group-label">Wallet &amp; safety</div>'
+    + '<div class="group-card" style="margin-top:6px"><button class="setrow" onclick="go(\'security\')"><span class="opt-ic" style="background:var(--good-soft);color:var(--good)">'+ICONS.shield+'</span><span style="flex:1"><span class="sname">Security</span><br/><span class="ssub">Add wallet, export &amp; send PIN</span></span><span class="chev">›</span></button></div>'
+    + '</div>' + dTabs('settings');
+}
+function dSecurity(){
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'settings\')">'+ICONS.back+' Settings</button>'
+    + '<div class="app-h" style="font-size:25px">Security</div>'
+    + '<div class="wallet-card"><span class="wc-ic">'+ICONS.wallet+'</span><span style="flex:1"><span style="font-family:Nunito;font-weight:800;font-size:16px">Account 1</span><br/><span style="font-size:13px;color:var(--muted);font-weight:600">0xA37a…091C · Saved on this device</span></span><span class="status-tag on">Active</span></div>'
+    + '<div class="group-label">Wallet</div>'
+    + '<div class="group-card">'
+    + '<button class="opt-row" onclick="go(\'addwallet\')"><span class="opt-ic" style="background:var(--accent-soft);color:var(--accent);font-size:20px">+</span><span style="flex:1"><span class="ot">Add wallet</span><br/><span class="os">Create or import another wallet</span></span><span class="chev">›</span></button>'
+    + '<button class="opt-row" onclick="go(\'exportwallet\')"><span class="opt-ic" style="background:var(--soft2)">'+ICONS.key+'</span><span style="flex:1"><span class="ot">Export wallet</span><br/><span class="os">See and copy your phrase or key</span></span><span class="chev">›</span></button>'
+    + '</div>'
+    + '<div class="group-label">Sending</div>'
+    + '<div class="group-card">'
+    + '<button class="opt-row" onclick="go(\'pin\')"><span class="opt-ic" style="background:var(--good-soft);color:var(--good)">'+ICONS.shield+'</span><span style="flex:1"><span class="ot">PIN for sending</span><br/><span class="os">Ask for a PIN before money leaves</span></span><span class="status-tag'+(demo.pinSet?' on':'')+'">'+(demo.pinSet?'On':'Not set')+'</span><span class="chev">›</span></button>'
+    + '</div>'
+    + '</div><div class="homebar"></div>';
+}
+function dAddWallet(){
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'security\')">'+ICONS.back+' Security</button>'
+    + '<div class="app-h" style="font-size:25px">Add wallet</div>'
+    + '<div class="group-label">With Privy</div>'
+    + '<div class="group-card">'
+    + '<button class="opt-row" onclick="go(\'privycreate\')"><span class="opt-ic" style="background:var(--accent);color:#fff;font-size:17px">G</span><span style="flex:1"><span class="ot">Create wallet via Privy</span><br/><span class="os">New wallet, made with your Google account</span></span><span class="chev">›</span></button>'
+    + '<button class="opt-row" onclick="go(\'privylogin\')"><span class="opt-ic" style="background:var(--accent-soft);color:var(--accent);font-size:17px">G</span><span style="flex:1"><span class="ot">Log in via Privy</span><br/><span class="os">Sign back in</span></span><span class="chev">›</span></button>'
+    + '</div>'
+    + '<div class="group-label">Import</div>'
+    + '<div class="group-card">'
+    + '<button class="opt-row" onclick="go(\'importkey\')"><span class="opt-ic" style="background:var(--soft2)">'+ICONS.key+'</span><span style="flex:1"><span class="ot">Import private key</span><br/><span class="os">Paste the key for one address</span></span><span class="chev">›</span></button>'
+    + '<button class="opt-row" onclick="go(\'importseed\')"><span class="opt-ic" style="background:var(--soft2);font-size:13px">12</span><span style="flex:1"><span class="ot">Import seed phrase</span><br/><span class="os">12 or 24 words, in order</span></span><span class="chev">›</span></button>'
+    + '</div>'
+    + '</div><div class="homebar"></div>';
+}
+function dPrivy(mode){
+  var create = mode==='create';
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'addwallet\')">'+ICONS.back+' Add wallet</button>'
+    + '<div style="text-align:center;margin-top:6px">'+pip('happy',76)+'</div>'
+    + '<div class="app-h" style="font-size:23px;text-align:center;margin-top:8px">'+(create?'Create wallet via Privy':'Log in via Privy')+'</div>'
+    + '<div style="text-align:center">'+tipBtn(create?'Privy makes a new wallet tied to your Google account. No phrase to write down.':'Sign in with Google and Privy brings your wallet back.')+'</div>'
+    + '<button class="google-btn" style="margin-top:20px" onclick="privyAction(this)"><span style="font-weight:900;color:#4285F4;font-size:19px">G</span> '+(create?'Create with Google':'Continue with Google')+'</button>'
+    + '<p id="privyNote" style="text-align:center;font-size:12.5px;color:var(--muted);font-weight:700;margin:10px 0 0">Demo</p>'
+    + '<button class="bigbtn secondary" style="margin-top:auto" onclick="go(\'addwallet\')">Back to options</button>'
+    + '</div><div class="homebar"></div>';
+}
+function privyAction(btn){ var n=document.getElementById('privyNote'); if(n) n.textContent='Demo only.'; }
+function dImportKey(){
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'addwallet\')">'+ICONS.back+' Add wallet</button>'
+    + '<div class="app-h" style="font-size:23px">Import private key</div>'
+    + '<div>'+tipBtn('Paste the key for the wallet you want to add. It stays on this phone.')+'</div>'
+    + '<div class="fld"><label>Private key</label><div class="fin"><input id="importKeyInput" placeholder="0x…" autocomplete="off"/></div></div>'
+    + '<p id="importNote" style="font-size:12.5px;color:var(--muted);font-weight:600;margin:10px 0 0">Never paste a key into a website or share it with anyone.</p>'
+    + '<button class="bigbtn" style="margin-top:auto" onclick="importAction()">Import wallet</button>'
+    + '</div><div class="homebar"></div>';
+}
+function dImportSeed(){
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'addwallet\')">'+ICONS.back+' Add wallet</button>'
+    + '<div class="app-h" style="font-size:23px">Import seed phrase</div>'
+    + '<div>'+tipBtn('Type the words in order, with a space between each one.')+'</div>'
+    + '<div class="fld"><label>Seed phrase</label><div class="fin"><input id="importSeedInput" placeholder="word word word…" autocomplete="off"/></div></div>'
+    + '<p id="importNote" style="font-size:12.5px;color:var(--muted);font-weight:600;margin:10px 0 0">Your phrase never leaves this phone.</p>'
+    + '<button class="bigbtn" style="margin-top:auto" onclick="importAction()">Import wallet</button>'
+    + '</div><div class="homebar"></div>';
+}
+function importAction(){ var n=document.getElementById('importNote'); if(n) n.textContent='Demo only.'; }
+function dExportWallet(){
+  var phrase = demo.exportRevealed ? phraseGridHTML() : '<div class="phrase-hidden">•••• •••• •••• ••••</div>';
+  var key = demo.keyRevealed ? '<div class="key-box">'+SAMPLE_KEY+'</div>' : '<div class="key-box" style="letter-spacing:.14em">••••••••••••••••••••••••</div>';
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'security\')">'+ICONS.back+' Security</button>'
+    + '<div class="app-h" style="font-size:25px">Export wallet'+tipBtn('Anyone who has your phrase or key has your wallet. Copy it somewhere safe.')+'</div>'
+    + '<div class="warn-box"><span style="flex:none;color:var(--bad)">'+ICONS.shield+'</span><p>Never share your phrase or key with anyone. Prime Way will never ask for it.</p></div>'
+    + '<div class="group-label">Recovery phrase <span style="text-transform:none;letter-spacing:0">· sample</span></div>'
+    + phrase
+    + '<div style="display:flex;gap:10px;margin-top:12px"><button class="bigbtn secondary" style="margin-top:0;flex:1" onclick="toggleReveal(\'phrase\')">'+(demo.exportRevealed?'Hide':'Show')+'</button><button class="bigbtn" style="margin-top:0;flex:1" onclick="copyDemo(this,\'phrase\')">Copy phrase</button></div>'
+    + '<div class="group-label">Private key</div>'
+    + key
+    + '<div style="display:flex;gap:10px;margin-top:10px"><button class="bigbtn secondary" style="margin-top:0;flex:1" onclick="toggleReveal(\'key\')">'+(demo.keyRevealed?'Hide':'Show')+'</button><button class="bigbtn" style="margin-top:0;flex:1" onclick="copyDemo(this,\'key\')">Copy key</button></div>'
+    + '<p id="copyNote" style="text-align:center;font-size:12.5px;color:var(--muted);font-weight:700;margin:12px 0 0"></p>'
+    + '</div><div class="homebar"></div>';
+}
+function toggleReveal(which){ if(which==='phrase') demo.exportRevealed=!demo.exportRevealed; else demo.keyRevealed=!demo.keyRevealed; renderDemo(); }
+function copyDemo(btn, which){
+  var text = which==='phrase' ? SAMPLE_PHRASE.join(' ') : SAMPLE_KEY;
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(text); }catch(e){}
+  var n=document.getElementById('copyNote'); if(n) n.textContent = which==='phrase' ? 'Phrase copied. Keep it somewhere safe.' : 'Private key copied. Keep it somewhere safe.';
+  if(btn) { var old=btn.textContent; btn.textContent='Copied ✓'; setTimeout(function(){ if(btn) btn.textContent=old; },1600); }
+}
+function dPin(){
+  var dots = [0,1,2,3].map(function(i){ return '<span class="'+(demo.pinValue.length>i?'filled':'')+'"></span>'; }).join('');
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'security\')">'+ICONS.back+' Security</button>'
+    + '<div class="app-h" style="font-size:24px;text-align:center">PIN for sending</div>'
+    + '<p style="color:var(--muted);font-weight:600;text-align:center;margin:8px 6px 0;font-size:14.5px">'+(demo.pinSet?'Your PIN is on. You\u2019ll be asked for it before any send.':'A short PIN, asked for before any send.')+'</p>'
+    + '<div class="pin-dots">'+dots+'</div>'
+    + '<div class="fld" style="max-width:220px;margin:8px auto 0;width:100%"><div class="fin"><input id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="4 numbers" autocomplete="off" style="text-align:center" oninput="pinTyped(this)"/></div></div>'
+    + '<p id="pinNote" style="text-align:center;font-size:12.5px;color:var(--muted);font-weight:700;margin:10px 0 0">'+(demo.pinSet?'Enter a new PIN to change it, or remove it below.':'Choose 4 numbers you\u2019ll remember.')+'</p>'
+    + '<button class="bigbtn" style="margin-top:auto" id="pinBtn" onclick="savePin()" '+(demo.pinValue.length===4?'':'disabled')+'>'+(demo.pinSet?'Change PIN':'Set PIN')+'</button>'
+    + (demo.pinSet?'<button class="bigbtn secondary" style="margin-top:10px" onclick="removePin()">Remove PIN</button>':'<button class="bigbtn secondary" style="margin-top:10px" onclick="go(\'security\')">Not now</button>')
+    + '</div><div class="homebar"></div>';
+}
+function pinTyped(inp){ demo.pinValue = (inp.value||'').replace(/\D/g,'').slice(0,4); var dots=document.querySelectorAll('.pin-dots span'); dots.forEach(function(d,i){ d.className = demo.pinValue.length>i ? 'filled' : ''; }); var b=document.getElementById('pinBtn'); if(b) b.disabled = demo.pinValue.length!==4; }
+function savePin(){ if(demo.pinValue.length!==4) return; demo.pinSet=true; var n=document.getElementById('pinNote'); if(n) n.textContent='PIN set. It will be asked for before sending.'; setTimeout(function(){ go('security'); },700); }
+function removePin(){ demo.pinSet=false; demo.pinValue=''; go('security'); }
+function dAddressBook(){
+  var people = PEOPLE.map(function(p,i){
+    return '<button class="person" onclick="pickPerson('+i+')"><span class="avatar" style="background:'+p.color+'">'+initials(p.name)+'</span><span><span class="pname">'+p.name+'</span><br/><span class="pmeta">On '+p.net+'</span></span><span class="chev">›</span></button>';
+  }).join('');
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'settings\')">'+ICONS.back+' Settings</button>'
+    + '<div class="app-h" style="font-size:25px">Address Book</div>'
+    + ''
+    + people
+    + '<button class="bigbtn secondary" style="margin-top:12px" onclick="go(\'add\')">+ &nbsp;Add someone</button>'
+    + '</div><div class="homebar"></div>';
+}
+/* old wallet-setup screen removed, see Security → Add wallet */
+function dPeople(){
+  var people = PEOPLE.map(function(p,i){
+    var net = netByName(p.net);
+    return '<button class="recent-card'+(demo.selPerson===i?' sel':'')+'" onclick="selectPerson('+i+')"><span class="avatar" style="background:'+p.color+'">'+initials(p.name)+'<span class="net-badge" style="background:'+net.color+'">'+net.name[0]+'</span></span><span><span style="font-family:Nunito;font-weight:800;font-size:16.5px">'+p.name+'</span><br/><span style="font-size:13px;color:var(--muted);font-weight:600">On '+p.net+'</span></span></button>';
+  }).join('');
+  return '<div class="scr-body fadein">'
+    + '<div class="app-h" style="font-size:31px">Send to</div>'
+    + '<div class="sendto-big">Type a name, or paste<br/>an address</div>'
+    + '<div class="quick-chips"><button class="qchip" onclick="pastePerson()">'+ICONS.copy+' Paste</button><button class="qchip" onclick="go(\'addressbook\')">'+ICONS.book+' Address Book</button><button class="qchip" onclick="scanNote(this)">'+ICONS.scan+' Scan QR code</button></div>'
+    + '<p id="sendNote" style="font-size:13px;color:var(--muted);font-weight:600;margin:8px 0 0"></p>'
+    + '<div class="sec-label" style="font-size:19px;margin:16px 0 10px">Recent</div>'
+    + people
+    + '<button class="bigbtn secondary" style="margin-top:2px" onclick="go(\'add\')">+ &nbsp;Someone new</button>'
+    + '<button class="bigbtn'+(demo.selPerson===null?' grey-off':'')+'" style="margin-top:12px" id="sendContinue" '+(demo.selPerson===null?'disabled':'')+' onclick="continueSend()">Continue</button>'
+    + '</div><div class="homebar"></div>';
+}
+function selectPerson(i){ demo.selPerson = i; demo.person = PEOPLE[i]; renderDemo(); }
+function continueSend(){ if(demo.selPerson===null && !demo.person) return; demo.network = null; go('network'); }
+function pastePerson(){
+  demo.person = {name:'Pasted address', net:'Base', color:'#7A5AF5', coin:'ETH'};
+  demo.selPerson = -1;
+  renderDemo();
+  var n = document.getElementById('sendNote'); if(n) n.textContent = 'Address pasted. It looks right. Tap Continue.';
+}
+function scanNote(btn){ var n=document.getElementById('sendNote'); if(n) n.textContent='Camera opens here in the real app.'; }
+function pickPerson(i){ demo.person = PEOPLE[i]; demo.network = null; go('network'); }
+function dAddPerson(){
+  return '<div class="scr-body fadein"><button class="backbtn" style="min-height:38px;padding:4px 0" onclick="go(\'people\')">'+ICONS.back+' Back</button>'
+    + '<div class="app-h" style="font-size:23px">Someone new</div>'
+    + ''
+    + '<div class="fld" style="margin-top:11px"><label style="margin-bottom:5px">Their name</label><div class="fin"><input id="newName" placeholder="e.g. Daniel" autocomplete="off" style="height:44px"/></div></div>'
+    + '<div class="fld" style="margin-top:11px"><label style="margin-bottom:5px">Their address</label><div class="fin"><input id="newAddr" placeholder="Paste their address" autocomplete="off" style="height:44px"/><button type="button" class="paste" onclick="pasteAddr()">Paste</button></div></div>'
+    + '<div class="fld" style="margin-top:11px"><label style="margin-bottom:5px">Where they keep their money</label>'
+    + '<div class="searchbox" style="margin:0 0 6px">'+ICONS.search+'<input id="newNetSearch" placeholder="Type a network name…" autocomplete="off" aria-label="Search their network" style="height:48px"/></div>'
+    + '<div id="newNetList"></div></div>'
+    + '<button class="bigbtn" style="margin-top:auto" onclick="saveNewPerson()">Save &amp; keep going</button>'
+    + '</div><div class="homebar"></div>';
+}
+function renderNewNetList(q){
+  q = (q||'').trim().toLowerCase();
+  var el = document.getElementById('newNetList'); if(!el) return;
+  var list = NETWORKS.filter(function(n){ return !q || n.name.toLowerCase().indexOf(q)>-1; });
+  if(!list.length){ el.innerHTML = '<p style="color:var(--muted);font-weight:600;font-size:14px;margin:6px 0">Nothing matches that yet. Try “ba”.</p>'; return; }
+  el.innerHTML = list.slice(0,3).map(function(n){
+    var idx = NETWORKS.indexOf(n), chosen = demo.newNet===idx;
+    return '<button class="netrow" style="min-height:46px;padding:5px 10px;'+(chosen?'background:var(--accent-soft)':'')+'" onclick="newNetPick('+idx+')"><span class="netdot" style="background:'+n.color+';width:32px;height:32px;font-size:12px;border-radius:11px">'+n.coin[0]+'</span><span style="font-family:Nunito;font-weight:800;font-size:15.5px">'+n.name+'</span>'+(chosen?'<span style="margin-left:auto;color:var(--accent);font-weight:900;font-size:13.5px">✓ Chosen</span>':'')+'</button>';
+  }).join('');
+}
+function newNetPick(i){ demo.newNet = i; renderNewNetList(document.getElementById('newNetSearch') ? document.getElementById('newNetSearch').value : ''); }
+function pasteAddr(){ var a = document.getElementById('newAddr'); if(a && !a.value) a.value = '0x7f3a…9c21'; }
+function saveNewPerson(){
+  var nameEl = document.getElementById('newName');
+  var name = (nameEl && nameEl.value.trim()) || 'Daniel';
+  var net = NETWORKS[demo.newNet||0];
+  demo.person = {name:name, net:net.name, color:'#7A5AF5', coin:net.coin};
+  demo.network = net;
+  go('amount');
+}
+function dNetwork(){
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'people\')">'+ICONS.back+' Back</button>'
+    + '<div class="app-h" style="font-size:25px">Where does '+demo.person.name+'<br/>keep her money?</div>'
+    + ''
+    + '<div class="searchbox">'+ICONS.search+'<input id="netSearch" placeholder="Type a network name…" autocomplete="off" aria-label="Search networks"/></div>'
+    + '<div id="netList"></div>'
+    + '<p style="font-size:13px;color:var(--muted);font-weight:600;margin-top:8px">'+demo.person.name+' usually uses '+demo.person.net+'.</p>'
+    + '</div><div class="homebar"></div>';
+}
+function renderNetList(q){
+  q = (q||'').trim().toLowerCase();
+  var list = NETWORKS.filter(function(n){ return !q || n.name.toLowerCase().indexOf(q)===0 || n.name.toLowerCase().indexOf(q)>-1; });
+  list.sort(function(a,b){
+    var as = a.name.toLowerCase().indexOf(q)===0?0:1, bs = b.name.toLowerCase().indexOf(q)===0?0:1; return as-bs;
+  });
+  var el = document.getElementById('netList');
+  if(!el) return;
+  if(!list.length){ el.innerHTML = '<p style="text-align:center;color:var(--muted);font-weight:600;padding:18px 0">Nothing matches that yet. Try “ba” for Base.</p>'; return; }
+  el.innerHTML = list.slice(0,5).map(function(n){
+    var idx = NETWORKS.indexOf(n);
+    return '<button class="netrow" onclick="pickNetwork('+idx+')"><span class="netdot" style="background:'+n.color+'">'+n.coin[0]+'</span><span><span style="font-family:Nunito;font-weight:800;font-size:16.5px">'+n.name+'</span><br/><span style="font-size:13px;color:var(--muted);font-weight:600">Arrives as USDC</span></span></button>';
+  }).join('') + (q ? '<p style="font-size:13px;color:var(--muted);font-weight:600;text-align:center;margin-top:8px">'+list.length+' match'+(list.length>1?'es':'')+' for “'+q+'”</p>' : '');
+}
+function pickNetwork(i){ demo.network = NETWORKS[i]; go('amount'); }
+function dAmount(){
+  var payRows = '<div class="chiprow">' + ASSETS_HELD.map(function(a,i){
+    return '<button class="chip'+(demo.payAsset===i?' on':'')+'" onclick="selectPayAsset('+i+')">'+a.symbol+' · $'+(a.amount*a.price).toLocaleString(undefined,{maximumFractionDigits:0})+'</button>';
+  }).join('') + '</div><p style="font-size:13px;color:var(--muted);font-weight:700;margin:8px 0 0" id="payNeed"></p>';
+  var recvChips = RECEIVE_ASSETS.map(function(r){
+    return '<button class="recv-chip'+(demo.receiveSym===r.symbol?' on':'')+(r.ok?'':' off')+'" onclick="selectReceiveAsset(\''+r.symbol+'\')"><span class="rs">'+r.symbol+(demo.receiveSym===r.symbol?' ✓':'')+'</span><br/><span class="rn">'+(r.ok?'Available on '+demo.network.name:'Not on '+demo.network.name)+'</span></button>';
+  }).join('');
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'network\')">'+ICONS.back+' Back</button>'
+    + '<div class="app-h" style="font-size:24px;text-align:center">How much for '+demo.person.name+'?'+tipBtn('Type dollars. Prime Way works out how much of the asset you pick that is.')+'</div>'
+    + '<div class="amount-wrap"><div class="amount-input"><span class="unit" style="font-size:34px">$</span><input id="amtInput" type="text" inputmode="decimal" value="'+demo.amount+'" aria-label="Amount in dollars" style="width:130px"/></div>'
+    + '</div>'
+    + '<div class="sec-label" style="margin:14px 0 4px">Pay with</div>' + payRows
+    + '<div class="sec-label" style="margin:14px 0 0">'+demo.person.name+' receives</div>'
+    + '<div class="recv-grid">' + recvChips + '</div>'
+    + '<div id="recvArea"></div>'
+    + '<button class="bigbtn" id="amtGo" style="margin-top:14px" onclick="go(\'confirm\')">Keep going</button>'
+    + '</div><div class="homebar"></div>';
+}
+function selectPayAsset(i){ demo.payAsset = i; demo.liveQuote = null; renderDemo(); }
+function selectReceiveAsset(sym){ demo.receiveSym = sym; demo.liveQuote = null; renderDemo(); }
+function cancelLiveQuote(){ if(liveTimer){ clearTimeout(liveTimer); liveTimer = null; } liveSeq++; }
+function liveReceiveHTML(got, ra, feesUsd){
+  var feeTxt = fmtFee(feesUsd);
+  var feeNote = feeTxt ? 'Fee '+feeTxt+'. A tiny fee comes out of the amount. Nothing extra to pay.' : 'A tiny fee comes out of the amount. Nothing extra to pay.';
+  return '<div class="receive-box" style="margin-top:14px"><div class="rlab">'+demo.person.name+' will receive</div><div class="rnum">'+fmtRecv(got, ra)+' <span class="demo-tag" style="vertical-align:middle;font-size:11px;padding:3px 9px">Live</span></div><div class="rusd">On '+demo.network.name+'</div></div><p class="fee-note">'+feeNote+'</p>';
+}
+function sampleReceiveHTML(got, ra){
+  return '<div class="receive-box" style="margin-top:14px"><div class="rlab">'+demo.person.name+' will receive</div><div class="rnum">'+(ra.price>100?got.toFixed(4):got.toFixed(2))+' '+ra.symbol+'</div><div class="rusd">On '+demo.network.name+'</div></div><p class="fee-note">A tiny fee comes out of the amount. Nothing extra to pay.</p>';
+}
+function scheduleLiveQuote(route, ra){
+  if(liveTimer){ clearTimeout(liveTimer); liveTimer = null; }
+  var seq = ++liveSeq;
+  var key = route.key;
+  liveTimer = setTimeout(function(){
+    liveTimer = null;
+    fetchLiveQuote(route, ra, seq, key);
+  }, 650);
+}
+function fetchLiveQuote(route, ra, seq, key){
+  if(typeof fetch==='undefined') return;
+  var body = {user:QUOTE_WALLET, recipient:QUOTE_WALLET, originChainId:route.originChainId, destinationChainId:route.destinationChainId, originCurrency:route.originCurrency, destinationCurrency:route.destinationCurrency, amount:route.amount};
+  var controller = null, timeoutId = null;
+  try{
+    if(typeof AbortController!=='undefined'){ controller = new AbortController(); timeoutId = setTimeout(function(){ try{ controller.abort(); }catch(e){} }, 15000); }
+  }catch(e){}
+  fetch(QUOTE_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal: controller ? controller.signal : undefined})
+    .then(function(res){ if(timeoutId) clearTimeout(timeoutId); if(!res.ok) throw new Error('bad'); return res.json(); })
+    .then(function(json){
+      if(seq!==liveSeq) return;
+      if(!json || json.outputAmountFormatted===undefined || json.outputAmountFormatted===null) return;
+      var got = parseFloat(json.outputAmountFormatted);
+      if(isNaN(got) || got<=0) return;
+      var current = quoteRouteFor(demo.amount);
+      if(!current || current.key!==key) return;
+      demo.liveQuote = {key:key, got:got, feesUsd:(json.feesUsd!==undefined?json.feesUsd:null), outputAmountFormatted:json.outputAmountFormatted};
+      if(demo.screen!=='amount') return;
+      var area = document.getElementById('recvArea');
+      if(area) area.innerHTML = liveReceiveHTML(got, ra, demo.liveQuote.feesUsd);
+    })
+    .catch(function(){ if(timeoutId) clearTimeout(timeoutId); /* keep sample, never show an error */ });
+}
+function updateAmount(){
+  var inp = document.getElementById('amtInput'); if(!inp) return;
+  var usd = parseFloat(inp.value.replace(',','.'));
+  var pay = ASSETS_HELD[demo.payAsset];
+  var payUsdTotal = pay.amount * pay.price;
+  var ra = receiveAsset(demo.receiveSym);
+  var valid = !isNaN(usd) && usd>0 && usd<=payUsdTotal;
+  var area = document.getElementById('recvArea'), btn = document.getElementById('amtGo');
+  var pn = document.getElementById('payNeed');
+  if(pn) pn.textContent = (!isNaN(usd) && usd>0) ? 'That\u2019s '+(usd/pay.price).toFixed(pay.price>100?3:2)+' '+pay.symbol+' from your '+pay.symbol+' on '+pay.chain : '';
+  if(!ra.ok){
+    cancelLiveQuote();
+    if(area) area.innerHTML = '<div class="bam-box"><div style="flex:none">'+pip('apologetic',46)+'</div><p><span>'+ra.symbol+' can\u2019t be delivered on '+demo.network.name+'.</span><br/>Relay does not offer it there. Pick USDC.</p></div>';
+    if(btn) btn.disabled = true;
+    return;
+  }
+  if(valid){
+    demo.amount = inp.value;
+    var got = usd * (1 - FEE) / ra.price;
+    var route = quoteRouteFor(inp.value);
+    if(route && demo.liveQuote && demo.liveQuote.key===route.key){
+      if(area) area.innerHTML = liveReceiveHTML(demo.liveQuote.got, ra, demo.liveQuote.feesUsd);
+    } else if(route){
+      /* Keep showing a number while the live quote is fetched. */
+      if(area) area.innerHTML = sampleReceiveHTML(got, ra);
+      scheduleLiveQuote(route, ra);
+    } else {
+      cancelLiveQuote();
+      if(area) area.innerHTML = sampleReceiveHTML(got, ra);
+    }
+  } else {
+    cancelLiveQuote();
+    if(area) area.innerHTML = '<div class="receive-box" style="margin-top:14px"><div class="rlab">'+demo.person.name+' will receive</div><div class="rnum">, </div><div class="rusd">'+(usd>payUsdTotal ? 'That is more than your '+pay.symbol+' is worth ($'+payUsdTotal.toLocaleString(undefined,{maximumFractionDigits:0})+')' : 'Type an amount to see what they get')+'</div></div>';
+  }
+  if(btn) btn.disabled = !valid;
+}
+function recvCalc(){
+  var usd = parseFloat(demo.amount)||0, ra = receiveAsset(demo.receiveSym), pay = ASSETS_HELD[demo.payAsset];
+  var route = quoteRouteFor(demo.amount);
+  if(route && demo.liveQuote && demo.liveQuote.key===route.key){
+    return { usd:usd, ra:ra, pay:pay, got: demo.liveQuote.got, payAmt: usd/pay.price, live:true, feesUsd: demo.liveQuote.feesUsd };
+  }
+  return { usd:usd, ra:ra, pay:pay, got: usd*(1-FEE)/ra.price, payAmt: usd/pay.price, live:false, feesUsd:null };
+}
+function fmtRecv(got, ra){ return (ra.price>100?got.toFixed(4):got.toFixed(2))+' '+ra.symbol; }
+function dConfirm(){
+  var c = recvCalc(), net = demo.network;
+  var feeTxt = c.live ? fmtFee(c.feesUsd) : null;
+  return '<div class="scr-body fadein"><button class="backbtn" onclick="go(\'amount\')">'+ICONS.back+' Back</button>'
+    + '<div class="app-h" style="font-size:25px">Just to check</div>'
+    + '<div class="confirm-card">'
+    + '<div class="crow"><span>Sending to</span><span>'+demo.person.name+'</span></div>'
+    + '<div class="crow"><span>You send</span><span>$'+c.usd.toLocaleString()+' · '+c.payAmt.toFixed(3)+' '+c.pay.symbol+'</span></div>'
+    + '<div class="crow"><span>'+demo.person.name+' receives</span><span style="color:var(--accent)">'+fmtRecv(c.got, c.ra)+(c.live?' <span class="demo-tag" style="font-size:10.5px;padding:2px 8px;vertical-align:middle">Live</span>':'')+'</span></div>'
+    + (feeTxt?'<div class="crow"><span>Fee</span><span>'+feeTxt+'</span></div>':'')
+    + '<div class="crow"><span>Where</span><span>'+net.name+'</span></div>'
+    + '<div class="crow"><span>Arrives</span><span>In a few minutes</span></div></div>'
+    + mascotMsg('thinking','I\'ve found the way there. All set when you are.')
+    + '<button class="bigbtn" style="margin-top:auto" onclick="startSending()">Send to '+demo.person.name+'</button>'
+    + '</div><div class="homebar"></div>';
+}
+function dSending(){
+  var net = demo.network;
+  return '<div class="scr-body fadein"><div class="app-h" style="font-size:25px;text-align:center;margin-top:8px">Sending to '+demo.person.name+'</div>'
+    + '<div class="travel"><svg class="route" viewBox="0 0 276 150" preserveAspectRatio="none"><path class="route-path" d="M28 118 C 90 30, 186 30, 248 96"/><path class="route-done" id="routeDone" d="M28 118 C 90 30, 186 30, 248 96" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>'
+    + '<div class="endpoint" style="left:28px;top:118px;transform:translate(-50%,-8px)"><div class="avatar" style="background:var(--accent);width:40px;height:40px;font-size:13px">You</div><div class="elab">You</div></div>'
+    + '<div class="endpoint" style="left:248px;top:96px;transform:translate(-50%,-8px)"><div class="avatar" style="background:'+net.color+';width:40px;height:40px">'+demo.person.name[0]+'</div><div class="elab">'+demo.person.name+'</div></div>'
+    + '<div class="coin" id="travelCoin" style="left:10%;top:79%">'+ASSETS_HELD[demo.payAsset].letter+'</div>'
+    + '<span class="sparkle" id="sp1" style="left:52%;top:20%"></span><span class="sparkle" id="sp2" style="left:60%;top:34%"></span><span class="sparkle" id="sp3" style="left:46%;top:36%"></span></div>'
+    + '<div class="step-line doing" id="step1"><span class="dot"><span class="spin"></span></span><span>On its way</span></div>'
+    + '<div class="step-line" id="step2"><span class="dot"></span><span>Making it just right for '+demo.person.name+'…</span></div>'
+    + '<div class="step-line" id="step3"><span class="dot"></span><span>Almost with them</span></div>'
+    + '<div style="text-align:center;margin-top:auto" id="sendMascot">'+pip('happy',74)+'<p style="color:var(--muted);font-weight:600;font-size:14px;margin:4px 0 0">Takes a few minutes.</p></div>'
+    + '</div><div class="homebar"></div>';
+}
+function startSending(){
+  go('sending');
+  var coin = document.getElementById('travelCoin');
+  var route = document.getElementById('routeDone');
+  var steps = [document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
+  var path = [[10,79],[24,52],[38,33],[50,24],[62,26],[76,42],[90,64]];
+  var start = null, DUR = 4600;
+  function setStep(i, state){
+    if(!steps[i]) return;
+    steps[i].className = 'step-line ' + state;
+    steps[i].querySelector('.dot').innerHTML = state==='done' ? '✓' : state==='doing' ? '<span class="spin"></span>' : '';
+  }
+  function frame(ts){
+    if(demo.screen!=='sending') return;
+    if(!start) start = ts;
+    var t = Math.min((ts-start)/DUR, 1);
+    var seg = t*(path.length-1), i = Math.floor(seg), f = seg-i;
+    var a = path[i], b = path[Math.min(i+1, path.length-1)];
+    coin.style.left = (a[0]+(b[0]-a[0])*f)+'%';
+    coin.style.top = (a[1]+(b[1]-a[1])*f)+'%';
+    route.style.strokeDashoffset = String(100 - t*100);
+    if(t>0.42 && t<0.58){ coin.classList.add('converted'); coin.textContent=receiveAsset(demo.receiveSym).letter;
+      ['sp1','sp2','sp3'].forEach(function(id,j){ var s=document.getElementById(id); if(s){ s.style.transition='opacity .3s '+(j*0.12)+'s, transform .5s'; s.style.opacity='1'; s.style.transform='scale(1.6)'; }});
+      var m = document.getElementById('sendMascot'); if(m && !m.dataset.thought){ m.dataset.thought='1'; var svgEl = m.querySelector('svg'); if(svgEl) svgEl.outerHTML = pip('thinking',74); }
+    }
+    if(t>=0.34 && t<0.72){ setStep(0,'done'); setStep(1,'doing'); }
+    if(t>=0.72){ setStep(1,'done'); setStep(2,'doing'); }
+    if(t<1) requestAnimationFrame(frame);
+    else { demo.timer = setTimeout(function(){ go('arrived'); }, 500); }
+  }
+  requestAnimationFrame(frame);
+}
+function dArrived(){
+  var c = recvCalc(), net = demo.network, r = c.got, ra = c.ra;
+  var confetti = ['#E8641C','#F5A524','#0E9F8A','#2E6BE6','#D9577B','#F07A35','#F5A524','#0E9F8A'].map(function(c,i){
+    return '<i style="left:'+(5+i*12)+'%;background:'+c+';animation-delay:'+(i*0.09)+'s"></i>';
+  }).join('');
+  return '<div class="scr-body fadein"><div class="confetti go" id="confettiBox">'+confetti+'</div><div class="center-col">'
+    + '<div class="checkring pop">'+ICONS.check+'</div>'
+    + '<div class="app-h" style="font-size:29px;margin-top:18px">'+((demo.person.name==='Mum'||demo.person.name==='Sarah')?'She\'s got it':'They\'ve got it')+'</div>'
+    + '<p style="color:var(--muted);font-weight:600;margin:10px 0 0">'+demo.person.name+' received <b style="color:var(--ink)">'+fmtRecv(r, ra)+'</b><br/>just now, on '+net.name+'.</p>'
+    + '<div style="margin-top:18px">'+pip('celebrating',104)+'</div></div>'
+    + '<button class="bigbtn" onclick="go(\'home\')">Done</button>'
+    + '<button class="bigbtn secondary" style="margin-top:10px" onclick="go(\'people\')">Send more</button>'
+    + '</div><div class="homebar"></div>';
+}
+function dHistory(){
+  return '<div class="scr-body fadein"><div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-bottom:10px;border-bottom:1px solid var(--line)"><div class="app-h" style="font-size:27px;flex:1">Activity</div><span class="icon-circle-btn">'+ICONS.search+'</span><span class="icon-circle-btn">'+ICONS.filter+'</span></div>'
+    + '<div class="chiprow" style="margin-top:14px"><button class="chip on">All</button><button class="chip">Pending</button><button class="chip">Sent</button><button class="chip">Deposits</button></div>'
+    + '<div class="date-head"><span class="dh-d">November 7, 2026</span><span class="dh-w">Saturday</span></div>'
+    + txCards()
+    + '</div>' + dTabs('hist');
+}
+function dError(){
+  return '<div class="scr-body fadein"><div class="center-col">'
+    + '<div class="sorryring">'+pip('apologetic',72)+'</div>'
+    + '<div class="app-h" style="font-size:26px;margin-top:18px">That one couldn\'t go through</div>'
+    + '<p style="color:var(--muted);font-weight:600;margin:12px 6px 0">The way there is busy right now. <b style="color:var(--ink)">Your money hasn\'t moved.</b> It is still all yours.</p></div>'
+    + '<button class="bigbtn" onclick="go(\'people\')">Try again</button>'
+    + '<button class="bigbtn secondary" style="margin-top:10px" onclick="go(\'home\')">Back to home</button>'
+    + '</div><div class="homebar"></div>';
+}
+
+/* wire up dynamic inputs after each render */
+var mo = new MutationObserver(function(){
+  var ns = document.getElementById('netSearch');
+  if(ns && !ns.dataset.wired){ ns.dataset.wired='1'; renderNetList(''); ns.addEventListener('input', function(){ renderNetList(ns.value); }); }
+  var ai = document.getElementById('amtInput');
+  if(ai && !ai.dataset.wired){ ai.dataset.wired='1'; updateAmount(); ai.addEventListener('input', updateAmount); }
+  var nns = document.getElementById('newNetSearch');
+  if(nns && !nns.dataset.wired){ nns.dataset.wired='1'; renderNewNetList(''); nns.addEventListener('input', function(){ renderNewNetList(nns.value); }); }
+});
+mo.observe(demoScr, {childList:true});
+renderDemo();
+</script>
+</body>
+</html>
