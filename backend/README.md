@@ -13,6 +13,16 @@ RELAY_API_KEY=your-relay-api-key node server.js
   start without it and prints a clear message. The key never lives in this
   repo. Keep it in the environment or your hosting provider's secrets, never
   in a file you commit.
+- `CMC_API_KEY` (optional): your CoinMarketCap API key (free Basic plan at
+  pro.coinmarketcap.com). Only the backend ever uses it — it is sent to
+  CoinMarketCap in the API key header and never leaves the server, never
+  appears in a log or a response, and never ships in the app. When it is
+  unset the service still starts and quotes fine; only `GET /token-icon`
+  answers `503 {"error": "coinmarketcap not configured", "logoUrl": null}`
+  and the app falls through to its other icon sources.
+- `CMC_API_BASE` (optional, tests only): base URL for CoinMarketCap,
+  default `https://pro-api.coinmarketcap.com`. The test suite points it at
+  a local mock CoinMarketCap; leave it unset in production.
 - `PORT` (optional): port to listen on. Default is 3000.
 - `RELAY_API_BASE` (optional, tests only): base URL for Relay, default
   `https://api.relay.link`. The test suite points it at a local mock Relay;
@@ -72,6 +82,54 @@ Addresses are returned exactly as Relay gives them — non-EVM addresses
 are not hex, so do not validate them as `0x` + 40 hex on the client.
 Relay unreachable with no cached list returns `502`. Full details in
 `CHAINS.md`.
+
+### GET /token-icon?chainId=8453&address=0x833589fcd6edb6e08f4c7c32d4f71b54bda02913&native=0
+
+Returns the token's brand icon from CoinMarketCap, for tokens the
+app's earlier icon sources did not resolve:
+
+```json
+{ "logoUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png", "cmcId": 3408 }
+```
+
+- `chainId` must be a positive integer (`400` otherwise), `address`
+  must be `0x` plus 40 hex characters (`400` otherwise) — the same
+  validation `/quote` uses. `native` is optional, `0` or `1`
+  (default `0`); `native=1` is only valid for the zero address, and
+  needs `symbol` (e.g. `ETH`) because a native currency has no
+  contract address to look up — without a symbol it answers
+  `{ "logoUrl": null, "cmcId": null }` without calling CoinMarketCap.
+- The backend calls CoinMarketCap `GET /v2/cryptocurrency/info`
+  with `address=<address>` (or `symbol=<symbol>` for natives) and the
+  `CMC_API_KEY` from its own environment. The key never ships in the
+  app: the app only ever asks this backend. The logo comes from the
+  listing's `logo` field, and only a CoinMarketCap static logo URL
+  (`s2.coinmarketcap.com/static/img/coins/...`) is ever returned.
+  When several listings share one address, the entry whose platform
+  contract address and chain match wins.
+- Results are cached in memory for 24 hours, misses included. A
+  `429` or `5xx` from CoinMarketCap (or a network failure or a bad
+  key) is never cached as a miss — the next call retries — and a
+  `429` backs further calls off for 60 seconds. Calls are spaced at
+  least 1.2s apart (free plan: 50 requests/minute) and time out
+  after 8s. CoinMarketCap not knowing the token answers `200` with
+  `{ "logoUrl": null, "cmcId": null }`; CoinMarketCap being
+  unavailable answers `503` with
+  `{ "error": "coinmarketcap unavailable", "logoUrl": null }`.
+  Live 2026-11-12 (verified against the real API): the address is
+  sent lower-cased, because a checksummed address answers `400`;
+  USDC on Ethereum answers with id 3408 and logo
+  `https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png`
+  (1 credit), while USDC on Base answers `400` — CoinMarketCap's
+  address index does not cover every deployment, so a `400` is a
+  miss and the app falls through to Trust Wallet / CoinGecko.
+- No key set answers `503` with
+  `{ "error": "coinmarketcap not configured", "logoUrl": null }` —
+  the app treats that as "try the next source", never as an error.
+  Nothing in any response or log ever contains the key.
+- `GET /currencies` now also passes Relay's `metadata.logoURI`
+  through as `iconUrl` on each currency (http(s) URLs only), so a
+  supplied icon can flow from Relay into the app.
 
 ### POST /quote
 
@@ -169,4 +227,8 @@ fees), checks input validation (including `topupGas`), checks
 caching, bad `chainId`, Relay unreachable) and checks that `POST /quote`
 forwards `topupGas: true` only for an allowed EVM-to-EVM non-native
 route, against a local mock Relay — it never calls the real Relay. It
-also checks that a missing `RELAY_API_KEY` exits with a clear message.
+also checks `GET /token-icon` against a local mock CoinMarketCap
+(known token, unknown token, native by symbol, bad input, 429 retried
+instead of cached as a miss, and `503 not configured` with no key)
+and that `shapeCurrency` passes Relay's `metadata.logoURI` through
+as `iconUrl`. It also checks that a missing `RELAY_API_KEY` exits with a clear message.

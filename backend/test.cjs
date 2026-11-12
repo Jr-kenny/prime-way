@@ -22,6 +22,8 @@ const {
   shapeChain,
   shapeCurrency,
   parseChainIdParam,
+  parseNativeParam,
+  extractCmcLogo,
   shouldTopUpGas,
 } = require("./server.js");
 
@@ -413,6 +415,79 @@ async function main() {
     assert.strictEqual(shapeCurrency({ address: "0xabc", symbol: "X", decimals: "6" }), null);
     assert.strictEqual(shapeCurrency({ symbol: "X", decimals: 6 }), null);
   });
+  check("shaping: currency shaping passes Relay logoURI through as iconUrl", () => {
+    assert.deepStrictEqual(
+      shapeCurrency({
+        address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", name: "USD Coin", decimals: 6,
+        metadata: { logoURI: "https://example.invalid/usdc.png", verified: true },
+      }),
+      {
+        address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", decimals: 6, name: "USD Coin",
+        iconUrl: "https://example.invalid/usdc.png",
+      }
+    );
+    // No metadata, or a non-http logoURI, means no iconUrl at all.
+    const noMeta = shapeCurrency({ address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", name: "USD Coin", decimals: 6 });
+    assert.strictEqual("iconUrl" in noMeta, false);
+    const ipfs = shapeCurrency({
+      address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", name: "USD Coin", decimals: 6,
+      metadata: { logoURI: "ipfs://Qmdeadbeef" },
+    });
+    assert.strictEqual("iconUrl" in ipfs, false);
+    const nonString = shapeCurrency({
+      address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", name: "USD Coin", decimals: 6,
+      metadata: { logoURI: 42 },
+    });
+    assert.strictEqual("iconUrl" in nonString, false);
+  });
+  check("token-icon: CoinMarketCap logo extraction picks the matching listing", () => {
+    const data = {
+      999: {
+        id: 999, logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/999.png",
+        platform: { slug: "bnb", token_address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" },
+      },
+      3408: {
+        id: 3408, logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+        platform: { slug: "ethereum", token_address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" },
+      },
+    };
+    // Both entries share the address; the Base chain (8453) has no
+    // platform slug match here, so the address-matching pool's first
+    // entry wins — but with an ethereum chain (1) the ethereum entry wins.
+    assert.deepStrictEqual(
+      extractCmcLogo(data, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", 1),
+      { logoUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png", cmcId: 3408 }
+    );
+    assert.deepStrictEqual(extractCmcLogo({}, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", 8453), { logoUrl: null, cmcId: null });
+    assert.deepStrictEqual(extractCmcLogo(null, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", 8453), { logoUrl: null, cmcId: null });
+    // A logo from anywhere but CoinMarketCap's static host is not trusted.
+    assert.deepStrictEqual(
+      extractCmcLogo(
+        { 1: { id: 1, logo: "https://evil.invalid/1.png" } },
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", 1
+      ),
+      { logoUrl: null, cmcId: null }
+    );
+    // Live 2026-11-12: an address lookup can return the right asset
+    // with another deployment's platform, so when no platform
+    // matches, the first entry with a logo still answers.
+    assert.deepStrictEqual(
+      extractCmcLogo(
+        { 3408: { id: 3408, logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+          platform: { slug: "zksync", token_address: "0x1d17cbcF0D6D143135aE902365D2E5e2A16538D4" } } },
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", 1
+      ),
+      { logoUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png", cmcId: 3408 }
+    );
+  });
+  check("token-icon: native param parsing", () => {
+    assert.strictEqual(parseNativeParam(null), false);
+    assert.strictEqual(parseNativeParam("0"), false);
+    assert.strictEqual(parseNativeParam("1"), true);
+    assert.strictEqual(parseNativeParam("true"), null);
+    assert.strictEqual(parseNativeParam("2"), null);
+    assert.strictEqual(parseNativeParam(""), null);
+  });
   check("parsing: chainId query param", () => {
     assert.strictEqual(parseChainIdParam("8453"), 8453);
     assert.strictEqual(parseChainIdParam(null), null);
@@ -631,6 +706,179 @@ async function main() {
     console.log("ok - http: POST /quote drops topupGas for native origin, Solana route, unknown chain");
   } finally {
     server2.kill();
+  }
+
+  // 4b. Live server against a mock CoinMarketCap: /token-icon.
+  // The mock answers for one known token (USDC on Base, address
+  // 0x8335...2913) and for the ETH symbol; anything else is unknown.
+  const USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+  const UNKNOWN_ADDR = "0x0000000000000000000000000000000000000001";
+  const RETRY_ADDR = "0x0000000000000000000000000000000000000002";
+  let cmcMode = "ok";
+  const cmcMock = await (async () => {
+    const hits = { info: 0 };
+    const headers = { info: null };
+    const server = http.createServer((req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      const u = new URL(req.url, "http://localhost");
+      if (req.method === "GET" && u.pathname === "/v2/cryptocurrency/info") {
+        hits.info++;
+        headers.info = req.headers;
+        if (cmcMode === "rate-limited") {
+          res.writeHead(429);
+          res.end(JSON.stringify({ status: { error_code: 429, error_message: "Too Many Requests" } }));
+          return;
+        }
+        if (cmcMode === "down") {
+          res.writeHead(500);
+          res.end(JSON.stringify({ status: { error_code: 500, error_message: "Server error" } }));
+          return;
+        }
+        const address = (u.searchParams.get("address") || "").toLowerCase();
+        const symbol = (u.searchParams.get("symbol") || "").toUpperCase();
+        if (address === USDC_BASE) {
+          res.writeHead(200);
+          res.end(JSON.stringify({
+            status: { error_code: 0 },
+            data: {
+              3408: {
+                id: 3408, name: "USD Coin", symbol: "USDC",
+                logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+                platform: { id: 1027, name: "Ethereum", slug: "ethereum", symbol: "ETH", token_address: USDC_BASE },
+              },
+            },
+          }));
+          return;
+        }
+        if (symbol === "ETH") {
+          res.writeHead(200);
+          res.end(JSON.stringify({
+            status: { error_code: 0 },
+            data: {
+              1: {
+                id: 1, name: "Ethereum", symbol: "ETH",
+                logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png",
+                platform: null,
+              },
+            },
+          }));
+          return;
+        }
+        res.writeHead(200);
+        res.end(JSON.stringify({ status: { error_code: 0 }, data: {} }));
+        return;
+      }
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: "not found" }));
+    });
+    await new Promise((resolve) => server.listen(3461, "127.0.0.1", resolve));
+    return { server, hits, headers };
+  })();
+  const cmcBase = "http://127.0.0.1:3461";
+  const port4 = 3462;
+  const server4 = startServer(
+    {
+      RELAY_API_KEY: "dummy-key-for-validation-tests-only",
+      RELAY_API_BASE: mockBase,
+      CMC_API_KEY: "dummy-cmc-key-for-tests-only",
+      CMC_API_BASE: cmcBase,
+      CMC_BACKOFF_MS: "300",
+    },
+    port4
+  );
+  try {
+    await waitForHealth(port4);
+
+    const icon1 = await getJson(port4, `/token-icon?chainId=8453&address=${USDC_BASE}&native=0`);
+    assert.strictEqual(icon1.status, 200);
+    assert.deepStrictEqual(icon1.body, {
+      logoUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+      cmcId: 3408,
+    });
+    assert.strictEqual(cmcMock.headers.info["x-cmc_pro_api_key"], "dummy-cmc-key-for-tests-only");
+    assert.strictEqual(cmcMock.hits.info, 1);
+    console.log("ok - http: GET /token-icon returns the CoinMarketCap logo for a known token");
+
+    const iconCached = await getJson(port4, `/token-icon?chainId=8453&address=${USDC_BASE}&native=0`);
+    assert.strictEqual(iconCached.status, 200);
+    assert.strictEqual(cmcMock.hits.info, 1, "second /token-icon for the same token must be cached");
+    console.log("ok - http: GET /token-icon is cached (one CoinMarketCap fetch for two calls)");
+
+    const iconUnknown = await getJson(port4, `/token-icon?chainId=8453&address=${UNKNOWN_ADDR}&native=0`);
+    assert.strictEqual(iconUnknown.status, 200);
+    assert.deepStrictEqual(iconUnknown.body, { logoUrl: null, cmcId: null });
+    console.log("ok - http: GET /token-icon returns logoUrl null for an unknown token");
+
+    const iconNative = await getJson(port4, `/token-icon?chainId=1&address=${ZERO_ADDRESS}&native=1&symbol=ETH`);
+    assert.strictEqual(iconNative.status, 200);
+    assert.deepStrictEqual(iconNative.body, {
+      logoUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png",
+      cmcId: 1,
+    });
+    console.log("ok - http: GET /token-icon looks a native up by symbol");
+
+    const hitsBeforeNativeNoSymbol = cmcMock.hits.info;
+    const iconNativeNoSymbol = await getJson(port4, `/token-icon?chainId=1&address=${ZERO_ADDRESS}&native=1`);
+    assert.strictEqual(iconNativeNoSymbol.status, 200);
+    assert.deepStrictEqual(iconNativeNoSymbol.body, { logoUrl: null, cmcId: null });
+    assert.strictEqual(cmcMock.hits.info, hitsBeforeNativeNoSymbol, "native without a symbol must not call CoinMarketCap");
+    console.log("ok - http: GET /token-icon native without symbol answers null without a call");
+
+    for (const bad of [
+      "/token-icon",
+      "/token-icon?address=" + USDC_BASE,
+      "/token-icon?chainId=abc&address=" + USDC_BASE,
+      "/token-icon?chainId=8453&address=0x1234",
+      "/token-icon?chainId=8453&address=" + USDC_BASE + "&native=2",
+      "/token-icon?chainId=8453&address=" + USDC_BASE + "&native=true",
+      "/token-icon?chainId=8453&address=" + USDC_BASE + "&native=1",
+      "/token-icon?chainId=8453&address=" + USDC_BASE + "&native=0&symbol=TOOLONGSYMBOL123",
+      "/token-icon?chainId=8453&address=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    ]) {
+      const r = await getJson(port4, bad);
+      assert.strictEqual(r.status, 400, `${bad} must be 400`);
+      assert.ok(typeof r.body.error === "string" && r.body.error.length > 0);
+    }
+    console.log("ok - http: GET /token-icon rejects missing/bad chainId, address, native and symbol with 400");
+
+    // 429: unavailable, and NOT cached as a miss — after the short
+    // test backoff expires, the same address is asked again and the
+    // mock answers.
+    cmcMode = "rate-limited";
+    const icon429 = await getJson(port4, `/token-icon?chainId=8453&address=${RETRY_ADDR}&native=0`);
+    assert.strictEqual(icon429.status, 503);
+    assert.strictEqual(icon429.body.error, "coinmarketcap unavailable");
+    assert.strictEqual(icon429.body.logoUrl, null);
+    const hitsAfter429 = cmcMock.hits.info;
+    cmcMode = "ok";
+    await new Promise((r) => setTimeout(r, 400));
+    const iconRetry = await getJson(port4, `/token-icon?chainId=8453&address=${RETRY_ADDR}&native=0`);
+    assert.strictEqual(iconRetry.status, 200);
+    assert.deepStrictEqual(iconRetry.body, { logoUrl: null, cmcId: null });
+    assert.ok(cmcMock.hits.info > hitsAfter429, "a 429 must not be cached as a miss");
+    console.log("ok - http: GET /token-icon answers 503 on CoinMarketCap 429 and retries next time");
+  } finally {
+    server4.kill();
+    cmcMock.server.close();
+  }
+
+  // 4c. No CMC_API_KEY: the service still starts, /health answers,
+  // and /token-icon answers 503 "not configured" instead of calling
+  // CoinMarketCap or crashing.
+  const port5 = 3463;
+  const server5 = startServer(
+    { RELAY_API_KEY: "dummy-key-for-validation-tests-only", RELAY_API_BASE: mockBase },
+    port5
+  );
+  try {
+    await waitForHealth(port5);
+    const iconNoKey = await getJson(port5, `/token-icon?chainId=8453&address=${USDC_BASE}&native=0`);
+    assert.strictEqual(iconNoKey.status, 503);
+    assert.strictEqual(iconNoKey.body.error, "coinmarketcap not configured");
+    assert.strictEqual(iconNoKey.body.logoUrl, null);
+    console.log("ok - http: GET /token-icon without CMC_API_KEY answers 503 not configured (service still starts)");
+  } finally {
+    server5.kill();
   }
 
   // Relay unreachable: list endpoints answer 502, never crash.

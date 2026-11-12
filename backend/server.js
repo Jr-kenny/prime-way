@@ -7,10 +7,17 @@
 // refund) so the app can show it landing. GET /chains returns Relay's
 // chain list (cached 1 hour, no API key needed) and
 // GET /currencies?chainId=... returns that chain's currencies (cached
-// 1 hour per chain) for token discovery.
+// 1 hour per chain) for token discovery. GET /token-icon?chainId=...
+// &address=...&native=0|1 returns a token's brand icon from
+// CoinMarketCap (cached 24 hours, misses included), so the app can
+// show a real icon for tokens no earlier source resolves.
 //
 // The Relay API key is read from the RELAY_API_KEY environment variable at
-// runtime. It never lives in this repo, in code, or in logs.
+// runtime. It never lives in this repo, in code, or in logs. The
+// CoinMarketCap key is likewise read from CMC_API_KEY at runtime, is
+// optional (the service starts and quotes fine without it), and is
+// never sent to the app: only the backend calls CoinMarketCap, and the
+// app only ever asks this backend for a logo URL.
 
 const http = require("node:http");
 
@@ -25,6 +32,14 @@ const RELAY_URL = `${RELAY_API_BASE}/quote/v2`;
 const RELAY_STATUS_URL = `${RELAY_API_BASE}/intents/status/v3`;
 const RELAY_CHAINS_URL = `${RELAY_API_BASE}/chains`;
 const RELAY_CURRENCIES_URL = `${RELAY_API_BASE}/currencies/v2`;
+// CoinMarketCap base URL. CMC_API_BASE exists only so tests can point
+// the service at a local mock CoinMarketCap; in production it stays
+// unset and the default below is used. It never carries a key.
+const CMC_API_BASE = (process.env.CMC_API_BASE || "https://pro-api.coinmarketcap.com").replace(
+  /\/+$/,
+  ""
+);
+const CMC_INFO_URL = `${CMC_API_BASE}/v2/cryptocurrency/info`;
 const PORT = Number(process.env.PORT || 3000);
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 const REQUEST_ID_RE = /^0x[0-9a-fA-F]{64}$/;
@@ -145,12 +160,26 @@ function shapeCurrency(currency) {
   if (!Number.isInteger(currency.decimals) || currency.decimals < 0) {
     return null;
   }
-  return {
+  const shaped = {
     address: currency.address,
     symbol: currency.symbol,
     decimals: currency.decimals,
     name: typeof currency.name === "string" ? currency.name : "",
   };
+  // Relay's metadata carries the token's own brand icon as logoURI
+  // (verified live shape, see CHAINS.md). Pass it through as iconUrl
+  // so the app can use it as the supplied icon for that token. Only
+  // a plain http(s) URL is passed on; anything else (ipfs://, an
+  // empty string, a non-string) is dropped, and the app falls through
+  // to its other icon sources.
+  const metadata = currency.metadata;
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    const logoURI = metadata.logoURI;
+    if (typeof logoURI === "string" && /^https?:\/\//.test(logoURI)) {
+      shaped.iconUrl = logoURI;
+    }
+  }
+  return shaped;
 }
 
 const chainsCache = { data: null, fetchedAt: 0, inflight: null };
@@ -304,6 +333,269 @@ async function handleCurrencies(req, res) {
     return;
   }
   sendJson(res, 200, { chainId, currencies });
+}
+
+// ---------------------------------------------------------------------------
+// Token icons from CoinMarketCap (GET /token-icon)
+// ---------------------------------------------------------------------------
+
+// CoinMarketCap's free Basic plan allows 50 requests/minute, so calls
+// are spaced at least 1.2s apart. Results are cached in memory for
+// 24 hours, misses included, so a token CoinMarketCap does not know is
+// not re-asked on every Home visit. A 429 or 5xx (or a network failure)
+// is NEVER cached as a miss — the next visit retries — and a 429 also
+// backs the caller off for 60 seconds. The key is read from the
+// CMC_API_KEY environment variable at call time and is never logged
+// or returned; when it is unset the endpoint answers 503 and the app
+// falls through to its other icon sources.
+const CMC_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const CMC_MIN_INTERVAL_MS = 1200;
+const CMC_TIMEOUT_MS = 8000;
+// Backoff after a 429. CMC_BACKOFF_MS exists only so tests can retry
+// quickly; in production it stays unset and the default 60s applies.
+const CMC_BACKOFF_MS = (() => {
+  const n = Number(process.env.CMC_BACKOFF_MS);
+  return Number.isFinite(n) && n > 0 ? n : 60 * 1000;
+})();
+const CMC_LOGO_RE = /^https:\/\/s2\.coinmarketcap\.com\/static\/img\/coins\/\d+x\d+\/[0-9]+\.png$/;
+const cmcCache = new Map(); // key -> { logoUrl, cmcId, fetchedAt }
+const cmcInflight = new Map(); // key -> Promise<result>
+let lastCmcCallAt = 0;
+let cmcBackoffUntil = 0;
+
+/** CoinMarketCap platform slug per chain id, used only to pick the
+ *  right entry when one contract address maps to several listings. */
+const CMC_PLATFORM_SLUG = {
+  1: "ethereum",
+  10: "optimism",
+  56: "bnb",
+  137: "polygon",
+  42161: "arbitrum",
+  8453: "base",
+  43114: "avalanche",
+  792703809: "solana",
+};
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Parse the native flag: "0"/"1" only, default false. Anything else
+// (including "true") is rejected so a bad caller cannot silently get
+// the wrong lookup.
+function parseNativeParam(raw) {
+  if (raw === null) return false;
+  if (raw === "0") return false;
+  if (raw === "1") return true;
+  return null;
+}
+
+// A token symbol for the native lookup: short, plain letters/digits.
+function parseSymbolParam(raw) {
+  if (raw === null) return null;
+  if (typeof raw !== "string" || !/^[A-Za-z0-9]{1,12}$/.test(raw)) return undefined;
+  return raw.toUpperCase();
+}
+
+// Pick the logo URL out of a CoinMarketCap /v2/cryptocurrency/info
+// `data` object (keyed by CoinMarketCap id). The response carries one
+// entry per listing, each with a `logo` like
+// https://s2.coinmarketcap.com/static/img/coins/64x64/{id}.png and,
+// for tokens, a `platform` with the contract address it was found
+// under. When several entries come back, the one whose platform
+// contract address matches the requested address wins; among those,
+// the one whose platform slug matches the chain wins; otherwise the
+// first entry with a usable logo wins. Only a CoinMarketCap static
+// logo URL is ever returned — anything else is treated as no logo.
+// Returns { logoUrl, cmcId } with logoUrl null when nothing matches.
+function extractCmcLogo(data, address, chainId) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return { logoUrl: null, cmcId: null };
+  }
+  const entries = Object.values(data).filter(
+    (e) => e && typeof e === "object" && !Array.isArray(e)
+  );
+  const withLogo = entries.filter(
+    (e) => typeof e.logo === "string" && CMC_LOGO_RE.test(e.logo)
+  );
+  if (withLogo.length === 0) return { logoUrl: null, cmcId: null };
+  const wanted = typeof address === "string" ? address.toLowerCase() : "";
+  const addressMatch = withLogo.filter((e) => {
+    const platform = e.platform;
+    return (
+      platform &&
+      typeof platform === "object" &&
+      typeof platform.token_address === "string" &&
+      platform.token_address.toLowerCase() === wanted
+    );
+  });
+  const pool = addressMatch.length > 0 ? addressMatch : withLogo;
+  const slug = CMC_PLATFORM_SLUG[chainId];
+  const chainMatch = slug
+    ? pool.filter((e) => {
+        const platform = e.platform;
+        return (
+          platform &&
+          typeof platform === "object" &&
+          typeof platform.slug === "string" &&
+          platform.slug.toLowerCase() === slug
+        );
+      })
+    : [];
+  const picked = chainMatch.length > 0 ? chainMatch[0] : pool[0];
+  // Live 2026-11-12: an address lookup for USDC on Ethereum
+  // returned the USDC asset (id 3408, correct logo) but with the
+  // platform of a different deployment (ZKsync), so the
+  // address/chain match above is only a preference — the first
+  // entry with a logo is what actually answers, and that logo is
+  // still the token's own brand icon.
+  return {
+    logoUrl: picked.logo,
+    cmcId: Number.isInteger(picked.id) ? picked.id : null,
+  };
+}
+
+// One CoinMarketCap info lookup, with spacing, backoff and the cache
+// above. `query` is the already-encoded query string (address=... or
+// symbol=...). Returns { status, logoUrl, cmcId } where status is
+// "found", "not-found" or "unavailable". Only "found" and "not-found"
+// are cached; "unavailable" (429, 5xx, bad key, network failure,
+// timeout) is never cached, so the next call retries.
+async function fetchCmcInfo(query, cacheKey, address, chainId) {
+  const cached = cmcCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < CMC_CACHE_TTL_MS) {
+    return { status: cached.logoUrl ? "found" : "not-found", logoUrl: cached.logoUrl, cmcId: cached.cmcId };
+  }
+  const existing = cmcInflight.get(cacheKey);
+  if (existing) return existing;
+  const job = (async () => {
+    if (Date.now() < cmcBackoffUntil) {
+      return { status: "unavailable", logoUrl: null, cmcId: null };
+    }
+    const gap = CMC_MIN_INTERVAL_MS - (Date.now() - lastCmcCallAt);
+    if (gap > 0) await sleep(gap);
+    lastCmcCallAt = Date.now();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CMC_TIMEOUT_MS);
+    let res;
+    try {
+      res = await fetch(`${CMC_INFO_URL}?${query}`, {
+        headers: {
+          "X-CMC_PRO_API_KEY": process.env.CMC_API_KEY,
+          Accept: "application/json",
+        },
+        signal: controller.signal,
+      });
+    } catch {
+      return { status: "unavailable", logoUrl: null, cmcId: null };
+    } finally {
+      clearTimeout(timer);
+    }
+    if (res.status === 429) {
+      cmcBackoffUntil = Date.now() + CMC_BACKOFF_MS;
+      return { status: "unavailable", logoUrl: null, cmcId: null };
+    }
+    if (res.status === 401 || res.status === 403 || res.status >= 500) {
+      // A bad key or a CoinMarketCap outage: not a miss, retry later.
+      // The status is logged without the key, which is never logged.
+      console.error(`CoinMarketCap info request failed with status ${res.status}`);
+      return { status: "unavailable", logoUrl: null, cmcId: null };
+    }
+    if (res.status === 400 || res.status === 404) {
+      // CoinMarketCap does not know this address/symbol: a real miss.
+      // Live 2026-11-12 this also happens for addresses its index
+      // does not cover (USDC on Base 400s while USDC on Ethereum
+      // answers), so a 400 is a miss, never an error to the caller —
+      // the app falls through to Trust Wallet / CoinGecko.
+      const result = { status: "not-found", logoUrl: null, cmcId: null };
+      cmcCache.set(cacheKey, { logoUrl: null, cmcId: null, fetchedAt: Date.now() });
+      return result;
+    }
+    if (!res.ok) {
+      return { status: "unavailable", logoUrl: null, cmcId: null };
+    }
+    let body;
+    try {
+      body = await res.json();
+    } catch {
+      return { status: "unavailable", logoUrl: null, cmcId: null };
+    }
+    const extracted = extractCmcLogo(body && body.data, address, chainId);
+    const result = extracted.logoUrl
+      ? { status: "found", logoUrl: extracted.logoUrl, cmcId: extracted.cmcId }
+      : { status: "not-found", logoUrl: null, cmcId: null };
+    cmcCache.set(cacheKey, { logoUrl: result.logoUrl, cmcId: result.cmcId, fetchedAt: Date.now() });
+    return result;
+  })();
+  cmcInflight.set(cacheKey, job);
+  try {
+    return await job;
+  } finally {
+    cmcInflight.delete(cacheKey);
+  }
+}
+
+async function handleTokenIcon(req, res) {
+  const url = new URL(req.url, "http://localhost");
+  if (url.pathname !== "/token-icon") {
+    sendJson(res, 404, { error: "not found" });
+    return;
+  }
+  const chainId = parseChainIdParam(url.searchParams.get("chainId"));
+  if (chainId === null) {
+    sendJson(res, 400, { error: "chainId must be a positive integer chain id" });
+    return;
+  }
+  const address = url.searchParams.get("address") || "";
+  if (!ADDRESS_RE.test(address)) {
+    sendJson(res, 400, { error: "address must be 0x followed by 40 hex characters" });
+    return;
+  }
+  const native = parseNativeParam(url.searchParams.get("native"));
+  if (native === null) {
+    sendJson(res, 400, { error: "native must be 0 or 1 when present" });
+    return;
+  }
+  const symbol = parseSymbolParam(url.searchParams.get("symbol"));
+  if (symbol === undefined) {
+    sendJson(res, 400, { error: "symbol must be 1-12 letters or digits when present" });
+    return;
+  }
+  if (native && address.toLowerCase() !== ZERO_ADDRESS) {
+    sendJson(res, 400, { error: "native must be 1 only for the zero address" });
+    return;
+  }
+  // A native currency has no contract address for CoinMarketCap to
+  // look up by address, so without a symbol there is nothing to ask
+  // it for — answer null without spending a call. The app's other
+  // sources (Trust Wallet, CoinGecko) already cover natives.
+  if (native && !symbol) {
+    sendJson(res, 200, { logoUrl: null, cmcId: null });
+    return;
+  }
+  if (!process.env.CMC_API_KEY) {
+    sendJson(res, 503, {
+      error: "coinmarketcap not configured",
+      logoUrl: null,
+    });
+    return;
+  }
+  const query = native
+    ? `symbol=${encodeURIComponent(symbol)}`
+    // CoinMarketCap's address lookup only accepts a lower-case
+    // address: a checksummed (mixed-case) address answers 400
+    // "Invalid value for 'slug': 'null'" (verified live 2026-11-12
+    // for USDC on Ethereum), so the address is lower-cased here.
+    : `address=${encodeURIComponent(address.toLowerCase())}`;
+  const cacheKey = native
+    ? `native:${chainId}:${symbol}`
+    : `${chainId}:${address.toLowerCase()}`;
+  const result = await fetchCmcInfo(query, cacheKey, address, chainId);
+  if (result.status === "unavailable") {
+    sendJson(res, 503, { error: "coinmarketcap unavailable", logoUrl: null });
+    return;
+  }
+  sendJson(res, 200, { logoUrl: result.logoUrl, cmcId: result.cmcId });
 }
 
 // Gas top-up gate (Relay docs: https://docs.relay.link/features/gas-top-up).
@@ -528,6 +820,12 @@ function createServer() {
       });
       return;
     }
+    if (req.method === "GET" && req.url.startsWith("/token-icon")) {
+      handleTokenIcon(req, res).catch(() => {
+        if (!res.headersSent) sendJson(res, 500, { error: "internal error" });
+      });
+      return;
+    }
     if (req.method === "POST" && req.url === "/quote") {
       handleQuote(req, res).catch(() => {
         if (!res.headersSent) sendJson(res, 500, { error: "internal error" });
@@ -572,6 +870,9 @@ module.exports = {
   shapeChain,
   shapeCurrency,
   parseChainIdParam,
+  parseNativeParam,
+  extractCmcLogo,
   shouldTopUpGas,
   CACHE_TTL_MS,
+  CMC_CACHE_TTL_MS,
 };
