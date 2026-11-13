@@ -81,11 +81,14 @@ export function PrimeWayMark({ size = 160 }: { size?: number }) {
         y1="92"
         x2="116"
         y2="186"
-        stroke="#F4F4F2"
+        stroke="#0E0E11"
         strokeWidth="5"
         strokeDasharray="12 10"
         strokeLinecap="round"
       />
+      {/* Centre line is #0E0E11 (dark on the white road) so the dash
+          is actually visible; it was #F4F4F2 before, the same colour
+          as the road, so it rendered invisible. */}
     </Svg>
   );
 }
