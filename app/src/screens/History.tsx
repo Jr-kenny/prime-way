@@ -12,6 +12,7 @@ import { useTheme } from '../theme-context';
 import { FONTS } from '../theme';
 import { Pip } from '../components/Pip';
 import { Screen } from '../components/ui';
+import { ArrowUpRightIcon } from '../components/icons';
 import { useFocusEffect } from '@react-navigation/native';
 
 type Props = BottomTabScreenProps<TabParamList, 'HistoryTab'>;
@@ -85,8 +86,8 @@ export function HistoryScreen(_props: Props) {
           borderBottomColor: palette.line,
         }}
       >
-        <Text style={{ fontFamily: FONTS.display, fontSize: 27, color: palette.ink, flex: 1 }}>
-          Activity
+        <Text style={{ fontFamily: FONTS.display, fontWeight: '900', fontSize: 27, color: palette.ink, flex: 1 }}>
+          History
         </Text>
       </View>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
@@ -175,7 +176,7 @@ export function HistoryScreen(_props: Props) {
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 18, color: palette.accent }}>↗</Text>
+                    <ArrowUpRightIcon size={18} color={palette.accent} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontFamily: FONTS.heading, fontSize: 16, color: palette.ink }}>

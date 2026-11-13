@@ -1,4 +1,4 @@
-// History live status: keep the Activity feed honest.
+// History live status: keep the History feed honest.
 //
 // The feed is built only from the app's own send records
 // (store/history.ts). Each record is checked against the backend's

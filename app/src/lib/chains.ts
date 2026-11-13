@@ -73,7 +73,7 @@ export const SUPPORTED_CHAINS: SupportedChain[] = [
     coin: 'ETH',
     color: '#627EEA',
     viemChain: mainnet,
-    rpc: 'https://eth.llamarpc.com',
+    rpc: 'https://ethereum.publicnode.com',
     tokens: [
       { symbol: 'ETH', address: ZERO_ADDRESS, decimals: 18, native: true, coingeckoId: 'ethereum' },
       { symbol: 'USDC', address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimals: 6, native: false, coingeckoId: 'usd-coin' },
@@ -99,7 +99,7 @@ export const SUPPORTED_CHAINS: SupportedChain[] = [
     coin: 'POL',
     color: '#8B5CF6',
     viemChain: polygon,
-    rpc: 'https://polygon-rpc.com',
+    rpc: 'https://polygon.publicnode.com',
     tokens: [
       { symbol: 'POL', address: ZERO_ADDRESS, decimals: 18, native: true, coingeckoId: 'matic-network' },
       { symbol: 'USDC', address: '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359', decimals: 6, native: false, coingeckoId: 'usd-coin' },

@@ -32,6 +32,7 @@ import type { Chain, PublicClient } from 'viem';
 import { BACKEND_URL } from '../config';
 import { SUPPORTED_CHAINS, ZERO_ADDRESS } from './chains';
 import { fetchPrices, totalUsdFor, sortAssets, type AssetBalance } from './balances';
+import { trustWalletIconUrl } from './tokenIcons';
 
 export const DISCOVERY_CACHE_TTL_MS = 10 * 60 * 1000;
 const CACHE_KEY = 'primeway.discovery.v1';
@@ -55,6 +56,9 @@ export interface BackendCurrency {
   symbol: string;
   decimals: number;
   name: string;
+  /** Relay's metadata logoURI, passed through by the backend as
+   *  iconUrl when Relay provides one — the supplied icon source. */
+  iconUrl?: string;
 }
 
 /** CoinGecko ids for symbols we can price. Anything not listed here
@@ -87,15 +91,6 @@ const CHAIN_COLORS: Record<number, string> = {
   43114: '#D64545',
 };
 const DEFAULT_CHAIN_COLOR = '#5B6470';
-
-const LETTERS: Record<string, string> = {
-  BNB: 'B',
-  ETH: 'Ξ',
-  USDC: '$',
-  USDT: '₮',
-  POL: 'P',
-  AVAX: 'A',
-};
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -296,12 +291,15 @@ function isEvmChainId(id: number): boolean {
 }
 
 /** Merge fast-path and discovered assets: dedupe by chain + asset
- *  address, fast path wins on a clash, then sort. */
+ *  address, fast path wins on a clash, then sort. Solana mints are
+ *  base58 and case-sensitive, so they are keyed as-is; EVM
+ *  addresses are lower-cased. */
 export function mergeBalances(fast: AssetBalance[], discovered: AssetBalance[]): AssetBalance[] {
   const seen = new Set<string>();
   const out: AssetBalance[] = [];
   for (const a of [...fast, ...discovered]) {
-    const key = `${a.chainId}:${a.tokenAddress.toLowerCase()}`;
+    const addr = a.vmType === 'svm' ? a.tokenAddress : a.tokenAddress.toLowerCase();
+    const key = `${a.chainId}:${addr}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(a);
@@ -413,14 +411,26 @@ export async function discoverBalances(
               chainId: chain.id,
               chainName: chain.name,
               symbol: currency.symbol,
+              name: currency.name,
               amount: Number(formatUnits(raw, currency.decimals)),
               raw,
               decimals: currency.decimals,
               priceUsd: price?.usd ?? null,
               change24h: price?.change24h ?? null,
               color: CHAIN_COLORS[chain.id] ?? DEFAULT_CHAIN_COLOR,
-              letter: LETTERS[currency.symbol] ?? currency.symbol[0],
               tokenAddress: currency.address,
+              vmType: 'evm',
+              native: currency.address.toLowerCase() === ZERO_ADDRESS.toLowerCase(),
+              // Relay's own logo for the token when it has one;
+              // otherwise the Trust Wallet URL, as before. Either
+              // way resolveIconUrl checks it loads before showing it.
+              iconUrl:
+                currency.iconUrl ??
+                trustWalletIconUrl(
+                  chain.id,
+                  currency.address,
+                  currency.address.toLowerCase() === ZERO_ADDRESS.toLowerCase(),
+                ),
             });
           } catch {
             // One asset failing must not take the rest down.

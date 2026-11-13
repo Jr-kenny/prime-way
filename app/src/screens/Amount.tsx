@@ -146,7 +146,7 @@ export function AmountScreen({ navigation, route }: Props) {
         <Text style={{ fontFamily: FONTS.bodySemi, color: palette.muted, marginTop: 10, fontSize: 15 }}>
           Add a wallet first.
         </Text>
-        <BigButton title="Add wallet" onPress={() => navigation.navigate('AddWallet')} />
+        <BigButton title="Add wallet" onPress={() => navigation.navigate('AddWallet', {})} />
       </Screen>
     );
   }
@@ -181,9 +181,9 @@ export function AmountScreen({ navigation, route }: Props) {
             lineHeight: 22,
           }}
         >
-          Your wallet is empty. Add money first.
+          Your wallet is empty. Receive money first.
         </Text>
-        <BigButton title="Deposit" onPress={() => navigation.navigate('Deposit')} />
+        <BigButton title="Receive" onPress={() => navigation.navigate('Receive')} />
       </Screen>
     );
   }

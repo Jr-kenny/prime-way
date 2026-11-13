@@ -4,18 +4,21 @@
 // or comes back.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useWallet } from '../wallet/WalletContext';
 import { fetchStatus } from '../lib/relay';
+import { tokenOn, ZERO_ADDRESS } from '../lib/chains';
 import { executeQuoteSteps, executorFromWalletClient, PartialExecutionError } from '../lib/send';
 import { addHistory, updateHistoryStatus } from '../store/history';
 import { useTheme } from '../theme-context';
 import { FONTS } from '../theme';
 import { Pip } from '../components/Pip';
 import { Heading, Screen } from '../components/ui';
+import { TokenIcon, type TokenIconAsset } from '../components/TokenIcon';
+import { CheckIcon } from '../components/icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Sending'>;
 
@@ -49,6 +52,23 @@ export function SendingScreen({ navigation, route }: Props) {
     inputRange: [0.42, 0.5, 1],
     outputRange: [0, 1, 1],
   });
+
+  const payToken = tokenOn(draft.payChainId, draft.paySymbol);
+  const receiveToken = tokenOn(draft.networkChainId, draft.receiveSymbol);
+  const payAsset: TokenIconAsset = {
+    chainId: draft.payChainId,
+    symbol: draft.paySymbol,
+    tokenAddress: payToken?.address ?? ZERO_ADDRESS,
+    vmType: 'evm',
+    native: payToken?.native ?? false,
+  };
+  const receiveAsset: TokenIconAsset = {
+    chainId: draft.networkChainId,
+    symbol: draft.receiveSymbol,
+    tokenAddress: receiveToken?.address ?? ZERO_ADDRESS,
+    vmType: 'evm',
+    native: receiveToken?.native ?? false,
+  };
 
   useEffect(() => {
     const loop = () => {
@@ -114,7 +134,7 @@ export function SendingScreen({ navigation, route }: Props) {
             finish();
             navigation.replace('SendError', {
               title: 'Still on its way',
-              message: `It is taking longer than usual. Your send is saved in Activity, and you can check it there.`,
+              message: `It is taking longer than usual. Your send is saved in History, and you can check it there.`,
               draft,
             });
             return;
@@ -155,7 +175,7 @@ export function SendingScreen({ navigation, route }: Props) {
         if (cancelled) return;
         finish();
         // The approval already went out: say so honestly, and save
-        // it in Activity so it is not lost. This check comes before
+        // it in History so it is not lost. This check comes before
         // the wallet-rejection check, because a deposit rejected in
         // the wallet after a landed approval still leaves the
         // approval open.
@@ -174,7 +194,7 @@ export function SendingScreen({ navigation, route }: Props) {
           });
           navigation.replace('SendError', {
             title: 'That one could not go through',
-            message: `The approval went through, then the send stopped. Your money is still yours, but the approval is still open. It is saved in Activity.`,
+            message: `The approval went through, then the send stopped. Your money is still yours, but the approval is still open. It is saved in History.`,
             draft,
           });
           return;
@@ -295,15 +315,13 @@ export function SendingScreen({ navigation, route }: Props) {
             marginLeft: -23,
             marginTop: -23,
             borderRadius: 23,
-            backgroundColor: converted ? palette.good : palette.amber,
+            backgroundColor: palette.surface,
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 3,
           }}
         >
-          <Text style={{ fontFamily: FONTS.display, fontSize: 19, color: converted ? '#EFFFFB' : '#7A4A00' }}>
-            {converted ? draft.receiveSymbol[0] : draft.paySymbol[0]}
-          </Text>
+          <TokenIcon asset={converted ? receiveAsset : payAsset} size={40} />
         </Animated.View>
         <Animated.View
           style={{
@@ -347,9 +365,11 @@ export function SendingScreen({ navigation, route }: Props) {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 12, color: st === 'done' ? '#fff' : palette.accent }}>
-                {st === 'done' ? '✓' : st === 'doing' ? '…' : ''}
-              </Text>
+              {st === 'done' ? (
+                <CheckIcon size={12} color="#fff" />
+              ) : st === 'doing' ? (
+                <ActivityIndicator size="small" color={palette.accent} />
+              ) : null}
             </View>
             <Text
               style={{

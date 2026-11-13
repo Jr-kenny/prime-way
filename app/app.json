@@ -2,7 +2,7 @@
   "expo": {
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E8641C",
+        "backgroundColor": "#000000",
         "backgroundImage": "./assets/android-icon-background.png",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,7 +19,6 @@
     "orientation": "portrait",
     "plugins": [
       "expo-secure-store",
-      "expo-font",
       "expo-web-browser",
       "react-native-quick-crypto",
       [
@@ -36,7 +35,7 @@
     "scheme": "primeway",
     "slug": "prime-way",
     "splash": {
-      "backgroundColor": "#FFFFFF",
+      "backgroundColor": "#000000",
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain"
     },

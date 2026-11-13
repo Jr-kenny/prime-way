@@ -1,11 +1,14 @@
-// Contacts live on the device only. Seeded once with the people from
-// the prototype; the user can add, edit and remove them. A contact
+// Contacts live on the device only. No seeded people: the list
+// starts empty and only holds people the user adds. A contact
 // without an address cannot be sent to until one is added.
 //
 // One entry per person, usable anywhere: a person has a name and an
 // address, nothing else. There is no per-person place their money
 // lives; the app picks the route. Records saved before this change
 // carried a `network` field; loading drops it and keeps the address.
+// The five prototype people seeded by older versions are dropped on
+// load when they still have no address; one the user gave an address
+// to is kept.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ZERO_ADDRESS } from '../lib/chains';
@@ -19,13 +22,8 @@ export interface Contact {
 
 const KEY = 'primeway.contacts.v1';
 
-const SEED: Contact[] = [
-  { id: 'sarah', name: 'Sarah', address: null, color: '#2E6BE6' },
-  { id: 'mum', name: 'Mum', address: null, color: '#8B5CF6' },
-  { id: 'james', name: 'James', address: null, color: '#3E7CB1' },
-  { id: 'emma', name: 'Emma', address: null, color: '#D9577B' },
-  { id: 'daniel', name: 'Daniel', address: null, color: '#7A5AF5' },
-];
+/** Ids of the prototype people older versions seeded. */
+const SEEDED_IDS = new Set(['sarah', 'mum', 'james', 'emma', 'daniel']);
 
 let cache: Contact[] | null = null;
 
@@ -35,19 +33,22 @@ let cache: Contact[] | null = null;
  *  too: money sent there is unrecoverable, so it is never a contact
  *  address. */
 function migrate(raw: unknown): Contact[] {
-  if (!Array.isArray(raw)) return SEED;
+  if (!Array.isArray(raw)) return [];
   const out: Contact[] = [];
   for (const row of raw as Record<string, unknown>[]) {
     if (!row || typeof row.id !== 'string' || typeof row.name !== 'string') continue;
+    const address =
+      typeof row.address === 'string' &&
+      row.address.startsWith('0x') &&
+      row.address.toLowerCase() !== ZERO_ADDRESS
+        ? (row.address as `0x${string}`)
+        : null;
+    // A seeded prototype person with no address was never real.
+    if (SEEDED_IDS.has(row.id) && !address) continue;
     out.push({
       id: row.id,
       name: row.name,
-      address:
-        typeof row.address === 'string' &&
-        row.address.startsWith('0x') &&
-        row.address.toLowerCase() !== ZERO_ADDRESS
-          ? (row.address as `0x${string}`)
-          : null,
+      address,
       color: typeof row.color === 'string' ? row.color : '#2E6BE6',
     });
   }
@@ -63,10 +64,10 @@ export async function loadContacts(): Promise<Contact[]> {
       return cache;
     }
   } catch {
-    // fall through to seed
+    // fall through to empty
   }
-  cache = SEED;
-  await AsyncStorage.setItem(KEY, JSON.stringify(SEED));
+  cache = [];
+  await AsyncStorage.setItem(KEY, JSON.stringify([]));
   return cache;
 }
 

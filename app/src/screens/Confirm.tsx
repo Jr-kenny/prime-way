@@ -1,4 +1,6 @@
-// Confirm: who, how much, what they get, when. One tap.
+// Confirm: who, how much, what they get, when. One tap. A PIN is
+// mandatory: with none set, Send goes to set one first, and only
+// then to the PIN gate.
 //
 // Before Send wakes up, a real check runs against live data: the
 // quote is re-requested fresh (never sign a stale quote), the
@@ -6,7 +8,7 @@
 // cover amount + fee. Send stays off (40% opacity) until the check
 // passes. When amount + fee is more than the total balance, the
 // top-up sheet opens with the real fee and the real shortfall;
-// its Add button goes to Add money (Deposit), and coming back
+// its Add button goes to Receive, and coming back
 // re-runs the check.
 
 import React, { useCallback, useRef, useState } from 'react';
@@ -25,6 +27,7 @@ import { useWallet } from '../wallet/WalletContext';
 import { useTheme } from '../theme-context';
 import { FONTS } from '../theme';
 import { BackButton, BigButton, Heading, MascotMsg, Screen } from '../components/ui';
+import { CheckIcon } from '../components/icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Confirm'>;
 
@@ -32,7 +35,7 @@ type CheckState = 'checking' | 'passed' | 'failed';
 
 export function ConfirmScreen({ navigation, route }: Props) {
   const { palette } = useTheme();
-  const { address } = useWallet();
+  const { address, activeId } = useWallet();
   const { draft } = route.params;
   const [pinOn, setPinOn] = useState(false);
   const [checkState, setCheckState] = useState<CheckState>('checking');
@@ -45,8 +48,8 @@ export function ConfirmScreen({ navigation, route }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      pinIsSet().then(setPinOn);
-    }, []),
+      pinIsSet(activeId).then(setPinOn);
+    }, [activeId]),
   );
 
   const runCheck = useCallback(async () => {
@@ -91,7 +94,7 @@ export function ConfirmScreen({ navigation, route }: Props) {
   }, [address, draft]);
 
   // Runs on first open and every time the user comes back, including
-  // from Add money, so a topped-up balance closes the sheet.
+  // from Receive, so a topped-up balance closes the sheet.
   useFocusEffect(
     useCallback(() => {
       void runCheck();
@@ -106,8 +109,13 @@ export function ConfirmScreen({ navigation, route }: Props) {
 
   const send = () => {
     if (checkState !== 'passed' || !freshQuote) return;
-    if (pinOn) navigation.navigate('PinGate', { draft: checkedDraft });
-    else navigation.navigate('Sending', { draft: checkedDraft });
+    // A PIN is mandatory: with none set, go and set one first.
+    // Coming back re-runs the check and the PIN gate opens.
+    if (!pinOn) {
+      navigation.navigate('SetupPin', { fromConfirm: true });
+      return;
+    }
+    navigation.navigate('PinGate', { draft: checkedDraft });
   };
 
   return (
@@ -190,7 +198,7 @@ export function ConfirmScreen({ navigation, route }: Props) {
             </Text>
           ) : checkState === 'passed' ? (
             <>
-              <Text style={{ fontSize: 15, color: palette.good }}>✓</Text>
+              <CheckIcon size={15} color={palette.good} />
               <Text style={{ fontWeight: '600', fontSize: 15, color: palette.good }}>
                 Checked, ready to send
               </Text>
@@ -275,7 +283,7 @@ export function ConfirmScreen({ navigation, route }: Props) {
             </Text>
             <BigButton
               title={`Add ${shortfallTxt}`}
-              onPress={() => navigation.navigate('Deposit')}
+              onPress={() => navigation.navigate('Receive')}
             />
             <BigButton title="Not now" secondary onPress={() => setSheetOpen(false)} />
           </Pressable>

@@ -13,6 +13,7 @@ import {
 import { FONTS } from '../theme';
 import { useTheme } from '../theme-context';
 import { Pip, type PipExpression } from './Pip';
+import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 
 export function Screen({
   children,
@@ -55,6 +56,7 @@ export function Heading({
     <Text
       style={{
         fontFamily: FONTS.display,
+        fontWeight: '900',
         fontSize: size,
         color: palette.ink,
         textAlign: center ? 'center' : 'left',
@@ -120,6 +122,7 @@ export function BigButton({
       <Text
         style={{
           fontFamily: FONTS.display,
+          fontWeight: '800',
           fontSize: 18,
           color: secondary ? palette.ink : palette.accentInk,
         }}
@@ -143,8 +146,8 @@ export function BackButton({
       onPress={onPress}
       style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingVertical: 8 }}
     >
-      <Text style={{ fontFamily: FONTS.heading, fontSize: 20, color: palette.ink }}>‹ </Text>
-      <Text style={{ fontFamily: FONTS.heading, fontSize: 15, color: palette.ink }}>{title}</Text>
+      <ChevronLeftIcon size={20} color={palette.ink} />
+      <Text style={{ fontFamily: FONTS.heading, fontWeight: '700', fontSize: 15, color: palette.ink }}>{title}</Text>
     </Pressable>
   );
 }
@@ -249,9 +252,7 @@ export function Row({
         ) : null}
       </View>
       {right}
-      {onPress ? (
-        <Text style={{ fontSize: 20, color: palette.muted }}>›</Text>
-      ) : null}
+      {onPress ? <ChevronRightIcon size={20} color={palette.muted} /> : null}
     </Pressable>
   );
 }
