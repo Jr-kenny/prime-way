@@ -66,11 +66,15 @@ function Letters() {
   );
 }
 
-export function PrimeWayMark({ size = 160 }: { size?: number }) {
+export function PrimeWayMark({ size = 160, bare = false }: { size?: number; bare?: boolean }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 232 232">
-      <Circle cx="116" cy="116" r="114" fill="#0E0E11" />
-      <Circle cx="116" cy="116" r="114" fill="none" stroke="#26262E" strokeWidth="2" />
+      {!bare && (
+        <>
+          <Circle cx="116" cy="116" r="114" fill="#0E0E11" />
+          <Circle cx="116" cy="116" r="114" fill="none" stroke="#26262E" strokeWidth="2" />
+        </>
+      )}
       {/* PRIME, centred across the top half */}
       <Letters />
       {/* Road: straight, centred, symmetrical, clear gap below
