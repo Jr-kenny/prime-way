@@ -1,14 +1,16 @@
-# Render blueprint for the Prime Way backend.
+# Render blueprint for the Prime Way backend (API + web UI).
 # Deploy from the dashboard as a Blueprint, or let Render pick this file up
 # when the repo is connected. The Relay API key is never in this file:
 # set RELAY_API_KEY in the Render dashboard (Environment), it is marked
 # sync: false here so Render asks for it instead of reading a value.
+# The build also installs and builds the Prime Way Web frontend
+# (../web) so this same free service serves the bridge UI at /.
 services:
   - type: web
     name: prime-way-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm install && npm --prefix ../web install && npm --prefix ../web run build
     startCommand: node server.js
     plan: free
     envVars:

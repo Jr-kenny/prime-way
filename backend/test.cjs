@@ -18,7 +18,9 @@ const {
   validateQuoteInput,
   shapeQuote,
   shapeStatus,
+  shapeRequest,
   sumFeesUsd,
+  feeBreakdown,
   shapeChain,
   shapeCurrency,
   parseChainIdParam,
@@ -182,10 +184,44 @@ const MOCK_CURRENCIES_BASE = [
   { chainId: 8453, address: "0xdead000000000000000000000000000000000000", symbol: "BROKEN", name: "Broken" },
 ];
 
+// Mock Relay history rows for /requests/v3: one for the test user,
+// one for someone else (must be filtered out), one with no requestId
+// (must be dropped, never guessed).
+const MOCK_REQUESTS = [
+  {
+    data: {
+      requestId: "0x17941185062f91cbd8fa0fec080beb94fb3b8943f4647f8b25e19d1670cc53a7",
+      status: "success",
+      user: "0xA37a186AfE306C3EE01D6ABF912cC42BC568091C",
+      recipient: "0xA37a186AfE306C3EE01D6ABF912cC42BC568091C",
+      originChainId: 8453,
+      destinationChainId: 42161,
+      originCurrencySymbol: "USDC",
+      destinationCurrencySymbol: "USDC",
+      amountInFormatted: "1",
+      amountOutFormatted: "0.976173",
+      createdAt: "2026-11-14T07:00:00.000Z",
+      txHashes: ["0x" + "ab".repeat(32)],
+    },
+  },
+  {
+    data: {
+      requestId: "0x" + "cd".repeat(32),
+      status: "pending",
+      user: "0x0000000000000000000000000000000000000001",
+      recipient: "0x0000000000000000000000000000000000000001",
+      originChainId: 1,
+      destinationChainId: 8453,
+      createdAt: "2026-11-14T07:00:00.000Z",
+    },
+  },
+  { data: { status: "waiting" } },
+];
+
 // A tiny mock of api.relay.link. Records hits and request bodies so the
 // tests can assert exactly what the backend sent to Relay.
 function startMockRelay(port) {
-  const hits = { chains: 0, currencies: 0, quote: 0 };
+  const hits = { chains: 0, currencies: 0, quote: 0, requests: 0 };
   const bodies = { currencies: null, quote: null };
   const headers = { currencies: null, quote: null };
   const server = http.createServer((req, res) => {
@@ -232,6 +268,12 @@ function startMockRelay(port) {
         headers.quote = req.headers;
         res.writeHead(200);
         res.end(JSON.stringify(SAMPLE_RELAY_RESPONSE));
+        return;
+      }
+      if (req.method === "GET" && req.url.startsWith("/requests/v3")) {
+        hits.requests++;
+        res.writeHead(200);
+        res.end(JSON.stringify({ requests: MOCK_REQUESTS }));
         return;
       }
       res.writeHead(404);
@@ -336,6 +378,33 @@ async function main() {
       Math.abs(shaped.feesUsd - 0.024928) < 0.001,
       `feesUsd was ${shaped.feesUsd}, expected about 0.024928`
     );
+  });
+  check("shaping: fee breakdown lists gas/relayer/app/subsidized", () => {
+    const shaped = shapeQuote(SAMPLE_RELAY_RESPONSE, GOOD_INPUT);
+    assert.deepStrictEqual(
+      shaped.fees.map((f) => [f.label, f.amountUsd]),
+      [
+        ["Gas", 0.001106],
+        ["Relayer", 0.023822],
+        ["App", 0],
+        ["Subsidized", 0],
+      ]
+    );
+    assert.deepStrictEqual(feeBreakdown(null), []);
+    assert.deepStrictEqual(feeBreakdown({ gas: { amountUsd: "oops" } }), []);
+  });
+  check("shaping: request rows keep only the user's entries", () => {
+    const shaped = shapeRequest(MOCK_REQUESTS[0]);
+    assert.strictEqual(
+      shaped.requestId,
+      "0x17941185062f91cbd8fa0fec080beb94fb3b8943f4647f8b25e19d1670cc53a7"
+    );
+    assert.strictEqual(shaped.status, "success");
+    assert.strictEqual(shaped.originSymbol, "USDC");
+    assert.strictEqual(shaped.amountOut, "0.976173");
+    assert.strictEqual(shaped.source, "relay");
+    assert.strictEqual(shapeRequest(MOCK_REQUESTS[2]), null);
+    assert.strictEqual(shapeRequest(null), null);
   });
   check("shaping: non-numeric fee line is skipped, never nulls feesUsd", () => {
     assert.strictEqual(
@@ -704,6 +773,45 @@ async function main() {
     assert.strictEqual(quoteUnknownChain.status, 200);
     assert.strictEqual("topupGas" in mock.bodies.quote, false, "unknown chain fails closed");
     console.log("ok - http: POST /quote drops topupGas for native origin, Solana route, unknown chain");
+
+    const quoteWeb = await postJson(port2, "/quote", { ...GOOD_INPUT, source: "web" });
+    assert.strictEqual(quoteWeb.status, 200);
+    assert.strictEqual(mock.bodies.quote.referrer, "prime-way-web");
+    const quoteMobile = await postJson(port2, "/quote", GOOD_INPUT);
+    assert.strictEqual(quoteMobile.status, 200);
+    assert.strictEqual("referrer" in mock.bodies.quote, false);
+    console.log("ok - http: POST /quote sends referrer only for web (source: web), never for the mobile app");
+
+    const hist = await getJson(port2, "/requests?user=0xA37a186AfE306C3EE01D6ABF912cC42BC568091C");
+    assert.strictEqual(hist.status, 200);
+    assert.strictEqual(hist.body.entries.length, 1, "only the user's row survives");
+    assert.strictEqual(
+      hist.body.entries[0].requestId,
+      "0x17941185062f91cbd8fa0fec080beb94fb3b8943f4647f8b25e19d1670cc53a7"
+    );
+    assert.strictEqual(hist.body.entries[0].status, "success");
+    assert.strictEqual(hist.body.entries[0].source, "relay");
+    assert.strictEqual(mock.hits.requests, 1);
+    const histBad = await getJson(port2, "/requests?user=not-an-address");
+    assert.strictEqual(histBad.status, 400);
+    assert.match(histBad.body.error, /user/);
+    console.log("ok - http: GET /requests returns only the user's entries, 400 for a bad user");
+
+    // The web UI: served from ../web/dist when the frontend was built
+    // (it is, in the repo layout); a checkout without a build answers 404.
+    const fs = require("node:fs");
+    const distIndex = path.join(__dirname, "..", "web", "dist", "index.html");
+    const home = await fetch(`http://127.0.0.1:${port2}/`);
+    if (fs.existsSync(distIndex)) {
+      assert.strictEqual(home.status, 200);
+      assert.match(home.headers.get("content-type") || "", /text\/html/);
+      const homeText = await home.text();
+      assert.match(homeText, /Prime Way/);
+      console.log("ok - http: GET / serves the built web UI");
+    } else {
+      assert.strictEqual(home.status, 404);
+      console.log("ok - http: GET / answers 404 when the web UI was not built");
+    }
   } finally {
     server2.kill();
   }

@@ -1,4 +1,4 @@
-// Prime Way backend: Relay quote service.
+// Prime Way backend: Relay quote service + Prime Way Web host.
 //
 // Small Node service using only Node built-ins (no npm install needed).
 // POST /quote takes a send request from the Prime Way app, asks Relay for
@@ -12,6 +12,14 @@
 // CoinMarketCap (cached 24 hours, misses included), so the app can
 // show a real icon for tokens no earlier source resolves.
 //
+// The same service also serves the Prime Way Web bridge UI (the built
+// frontend in ../web/dist) at / /bridge /activity, and
+// GET /requests?user=... proxies Relay's /requests/v3 so the web UI
+// can show real history. Web quotes carry referrer "prime-way-web"
+// only when the caller marks source: "web" in its /quote body; the
+// mobile app sends no source, so its quotes carry no referrer and
+// stay exactly as before. /quote also returns a fee breakdown.
+//
 // The Relay API key is read from the RELAY_API_KEY environment variable at
 // runtime. It never lives in this repo, in code, or in logs. The
 // CoinMarketCap key is likewise read from CMC_API_KEY at runtime, is
@@ -19,7 +27,9 @@
 // never sent to the app: only the backend calls CoinMarketCap, and the
 // app only ever asks this backend for a logo URL.
 
+const fs = require("node:fs");
 const http = require("node:http");
+const path = require("node:path");
 
 // Relay base URL. RELAY_API_BASE exists only so tests can point the
 // service at a local mock Relay; in production it stays unset and the
@@ -30,6 +40,7 @@ const RELAY_API_BASE = (process.env.RELAY_API_BASE || "https://api.relay.link").
 );
 const RELAY_URL = `${RELAY_API_BASE}/quote/v2`;
 const RELAY_STATUS_URL = `${RELAY_API_BASE}/intents/status/v3`;
+const RELAY_REQUESTS_URL = `${RELAY_API_BASE}/requests/v3`;
 const RELAY_CHAINS_URL = `${RELAY_API_BASE}/chains`;
 const RELAY_CURRENCIES_URL = `${RELAY_API_BASE}/currencies/v2`;
 // CoinMarketCap base URL. CMC_API_BASE exists only so tests can point
@@ -41,6 +52,15 @@ const CMC_API_BASE = (process.env.CMC_API_BASE || "https://pro-api.coinmarketcap
 );
 const CMC_INFO_URL = `${CMC_API_BASE}/v2/cryptocurrency/info`;
 const PORT = Number(process.env.PORT || 3000);
+// Referrer tag for web quotes only: the web client sends
+// source: "web" in its /quote body; the mobile app sends no source,
+// so its quotes carry no referrer and stay exactly as before.
+// Attribution itself comes from the x-api-key header either way.
+const REFERRER = "prime-way-web";
+// Built web frontend, served at / /bridge /activity when present
+// (built by the Render build step from ../web). Absent locally until
+// the frontend is built; the API works without it.
+const DIST_DIR = path.join(__dirname, "..", "web", "dist");
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 const REQUEST_ID_RE = /^0x[0-9a-fA-F]{64}$/;
 // The EVM native-currency sentinel: every EVM chain Relay lists uses the
@@ -71,6 +91,34 @@ function sumFeesUsd(fees) {
     }
   }
   return Math.round(total * 1e6) / 1e6;
+}
+
+const FEE_LABELS = {
+  app: "App",
+  gas: "Gas",
+  relayer: "Relayer",
+  subsidized: "Subsidized",
+};
+
+// Relay's `relayer` line already contains relayerGas + relayerService,
+// so the breakdown lists gas / relayer / app / subsidized only.
+function feeBreakdown(fees) {
+  const out = [];
+  for (const line of FEE_LINES) {
+    const entry = fees && fees[line];
+    if (!entry || entry.amountUsd === undefined) continue;
+    const n = Number(entry.amountUsd);
+    if (!Number.isFinite(n)) continue;
+    out.push({
+      amountUsd: Math.round(n * 1e6) / 1e6,
+      label: FEE_LABELS[line] || line,
+      symbol:
+        entry.currency && typeof entry.currency.symbol === "string"
+          ? entry.currency.symbol
+          : undefined,
+    });
+  }
+  return out;
 }
 
 function validateQuoteInput(body) {
@@ -634,6 +682,10 @@ function shapeQuote(relay, body) {
     outputAmountFormatted: out ? out.amountFormatted : null,
     outputCurrency: (currency && currency.symbol) || body.destinationCurrency,
     feesUsd: sumFeesUsd(relay.fees),
+    // Fee breakdown (gas / relayer / app / subsidized), for the web
+    // UI's quote panel. Additive only: the existing fields above are
+    // unchanged, so the mobile app reads exactly what it always did.
+    fees: feeBreakdown(relay.fees),
     // Each step carries the transaction the wallet must send (to, data,
     // value, chainId), taken from the step's first item. The Prime Way
     // app sends exactly what the quote describes, one step at a time.
@@ -723,6 +775,10 @@ async function handleQuote(req, res) {
         destinationCurrency: body.destinationCurrency,
         amount: body.amount,
         tradeType: "EXACT_INPUT",
+        // Referrer only for web quotes (the web client sends
+        // source: "web"); the mobile app sends no source, so its
+        // quotes go to Relay exactly as they always have.
+        ...(body.source === "web" ? { referrer: REFERRER } : {}),
         ...(topUpGas ? { topupGas: true } : {}),
       }),
     });
@@ -791,6 +847,142 @@ async function handleStatus(req, res) {
   sendJson(res, 200, shapeStatus(relay, requestId));
 }
 
+// ---------------------------------------------------------------------------
+// Relay request history (GET /requests) + static web UI
+// ---------------------------------------------------------------------------
+
+// Map one Relay /requests/v3 row to the app's history shape. The API
+// nests most fields under `data` and names the id differently across
+// versions, so every field is read defensively; a row without a
+// requestId is dropped, never guessed.
+function shapeRequest(row) {
+  if (!row || typeof row !== "object") return null;
+  const data = row.data && typeof row.data === "object" ? row.data : {};
+  const pick = (...keys) => {
+    for (const k of keys) {
+      if (row[k] !== undefined && row[k] !== null) return row[k];
+      if (data[k] !== undefined && data[k] !== null) return data[k];
+    }
+    return null;
+  };
+  const requestId = pick("requestId", "id");
+  if (typeof requestId !== "string" || !REQUEST_ID_RE.test(requestId)) {
+    return null;
+  }
+  const txHashes = [];
+  const collect = (v) => {
+    if (typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v)) txHashes.push(v);
+    if (Array.isArray(v)) v.forEach(collect);
+  };
+  collect(pick("txHashes"));
+  collect(data.txHashes);
+  collect(data.outTxs);
+  collect(data.inTxs);
+  const entry = {
+    requestId,
+    status: pick("status") || "pending",
+    user: pick("user") || "",
+    recipient: pick("recipient") || "",
+    originChainId: Number(pick("originChainId")) || 0,
+    destinationChainId: Number(pick("destinationChainId")) || 0,
+    originSymbol: pick("originCurrencySymbol", "originSymbol") || "",
+    destinationSymbol: pick("destinationCurrencySymbol", "destinationSymbol") || "",
+    amountIn: pick("amountInFormatted", "amountIn") || "",
+    amountOut: pick("amountOutFormatted", "amountOut") || null,
+    createdAt: pick("createdAt") || new Date().toISOString(),
+    txHashes: [...new Set(txHashes)],
+    source: "relay",
+  };
+  if (typeof entry.amountIn !== "string") entry.amountIn = String(entry.amountIn);
+  if (entry.amountOut !== null && typeof entry.amountOut !== "string") {
+    entry.amountOut = String(entry.amountOut);
+  }
+  return entry;
+}
+
+async function handleRequests(req, res) {
+  const url = new URL(req.url, "http://localhost");
+  const user = (url.searchParams.get("user") || "").toLowerCase();
+  if (!ADDRESS_RE.test(user)) {
+    sendJson(res, 400, { error: "user must be a wallet address" });
+    return;
+  }
+  const limitRaw = Number(url.searchParams.get("limit") || 25);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 25;
+  let relayRes;
+  try {
+    relayRes = await fetch(
+      `${RELAY_REQUESTS_URL}?limit=${limit}&includePendingRequests=true&includeAuthenticatedData=true`,
+      { headers: { "x-api-key": process.env.RELAY_API_KEY } },
+    );
+  } catch {
+    sendJson(res, 502, { error: "could not reach Relay" });
+    return;
+  }
+  if (!relayRes.ok) {
+    sendJson(res, 502, { error: "Relay history failed", relayStatus: relayRes.status });
+    return;
+  }
+  let relay;
+  try {
+    relay = await relayRes.json();
+  } catch {
+    sendJson(res, 502, { error: "Relay history failed" });
+    return;
+  }
+  const rows = Array.isArray(relay)
+    ? relay
+    : Array.isArray(relay.requests)
+      ? relay.requests
+      : [];
+  const entries = [];
+  for (const row of rows) {
+    const shaped = shapeRequest(row);
+    if (!shaped) continue;
+    if (
+      shaped.user.toLowerCase() !== user &&
+      shaped.recipient.toLowerCase() !== user
+    ) {
+      continue;
+    }
+    entries.push(shaped);
+  }
+  sendJson(res, 200, { entries: entries.slice(0, limit) });
+}
+
+const MIME = {
+  ".css": "text/css",
+  ".html": "text/html",
+  ".js": "text/javascript",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+};
+
+function handleStatic(req, res) {
+  const url = new URL(req.url, "http://localhost");
+  let pathname = decodeURIComponent(url.pathname);
+  if (pathname === "/" || pathname === "/bridge" || pathname === "/activity") {
+    pathname = "/index.html";
+  }
+  const file = path.join(DIST_DIR, pathname);
+  if (!file.startsWith(DIST_DIR)) {
+    sendJson(res, 404, { error: "not found" });
+    return;
+  }
+  fs.readFile(file, (err, data) => {
+    if (err) {
+      sendJson(res, 404, { error: "not found" });
+      return;
+    }
+    res.writeHead(200, {
+      "Content-Type": MIME[path.extname(file)] || "application/octet-stream",
+    });
+    res.end(data);
+  });
+}
+
 function createServer() {
   return http.createServer((req, res) => {
     // Browser preflight for cross-origin POST /quote.
@@ -838,6 +1030,16 @@ function createServer() {
       });
       return;
     }
+    if (req.method === "GET" && req.url.startsWith("/requests")) {
+      handleRequests(req, res).catch(() => {
+        if (!res.headersSent) sendJson(res, 500, { error: "internal error" });
+      });
+      return;
+    }
+    if (req.method === "GET" && fs.existsSync(DIST_DIR)) {
+      handleStatic(req, res);
+      return;
+    }
     sendJson(res, 404, { error: "not found" });
   });
 }
@@ -866,7 +1068,9 @@ module.exports = {
   validateQuoteInput,
   shapeQuote,
   shapeStatus,
+  shapeRequest,
   sumFeesUsd,
+  feeBreakdown,
   shapeChain,
   shapeCurrency,
   parseChainIdParam,
