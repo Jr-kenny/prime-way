@@ -241,12 +241,14 @@ export function WelcomeScreen({ navigation }: Props) {
             elevation: 6,
           }}
         >
-          {/* The mark renders bare at 80 inside the 98 circle: the
-              approved test mark is 102x75 with PRIME 68 wide, so a
-              full-size 98 mark would make PRIME ~83 wide — the
-              oversized-logo error. At 80, PRIME is 68 wide and the
-              road base 36, matching the reference. */}
-          <PrimeWayMark size={80} bare />
+          {/* The mark renders bare at 60 inside the 98 circle.
+              Measured from the approved screenshot itself, PRIME is
+              ~51% of the circle diameter — a full-size 98 mark would
+              make PRIME ~85% wide, the oversized-logo error, and 80
+              still makes it ~72%. At 60, PRIME is ~50 wide, the road
+              base ~27, and the mark sits centred with black space
+              above and below, as in the reference. */}
+          <PrimeWayMark size={60} bare />
         </View>
         <Text
           style={{
